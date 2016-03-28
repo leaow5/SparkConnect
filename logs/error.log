@@ -1,0 +1,10 @@
+2016.03.24 at 20:53:47 CST ERROR com.spark.utils.tests.Hello 14 hello - Did it again!
+2016.03.24 at 20:53:47 CST FATAL com.spark.utils.tests.Hello 18 hello - 我是fatal信息
+2016.03.24 at 20:55:09 CST ERROR com.spark.utils.tests.Hello 14 hello - Did it again!
+2016.03.24 at 20:55:09 CST FATAL com.spark.utils.tests.Hello 18 hello - 我是fatal信息
+2016.03.24 at 20:58:34 CST ERROR com.spark.utils.tests.Hello 14 hello - Did it again!
+2016.03.24 at 20:58:34 CST FATAL com.spark.utils.tests.Hello 18 hello - 我是fatal信息
+2016.03.24 at 21:00:36 CST ERROR com.spark.utils.tests.Hello 14 hello - Did it again!
+2016.03.24 at 21:00:36 CST FATAL com.spark.utils.tests.Hello 18 hello - 我是fatal信息
+2016.03.24 at 21:06:57 CST ERROR com.spark.utils.tests.Hello 14 hello - Did it again!
+2016.03.24 at 21:06:57 CST FATAL com.spark.utils.tests.Hello 18 hello - 我是fatal信息
