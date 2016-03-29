@@ -1,9 +1,10 @@
 package com.spark.utils;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Locale;
 
-final public class HexAsciiStringConvertUtil {
-	private HexAsciiStringConvertUtil() {
+final public class StringTransformUtil {
+	private StringTransformUtil() {
 
 	}
 
@@ -73,7 +74,7 @@ final public class HexAsciiStringConvertUtil {
 	 *            the hex string
 	 * @return byte[]
 	 */
-	public static byte[] hexStringToBytes(String hexString) {
+	public static byte[] hexToBytes(String hexString) {
 		if (hexString == null || hexString.equals("")) {
 			return null;
 		}
@@ -192,11 +193,30 @@ final public class HexAsciiStringConvertUtil {
 	}
 
 	/**
+	 * 转换到十六进制.
+	 * 
+	 * @param asc
+	 *            String
+	 * @return String
+	 */
+	public static String strToHex(String asc) {
+
+		StringBuilder stringBuilder = new StringBuilder("");
+		int v = Integer.valueOf(asc);
+		String hv = Integer.toHexString(v);
+		if (hv.length() < 2) {
+			stringBuilder.append(0);
+		}
+		stringBuilder.append(hv);
+		return stringBuilder.toString();
+	}
+
+	/**
 	 * @函数功能: BCD码转ASC码
 	 * @输入参数: BCD串
 	 * @输出结果: ASC码
 	 */
-	public static String BcdToAsc(byte[] bytes) {
+	public static String bcdToAsc(byte[] bytes) {
 		StringBuffer temp = new StringBuffer(bytes.length * 2);
 
 		for (int i = 0; i < bytes.length; i++) {
@@ -207,5 +227,164 @@ final public class HexAsciiStringConvertUtil {
 		return temp.toString();
 	}
 
-	public final static char[] BToA = "0123456789abcdef".toCharArray();
+	private final static char[] BToA = "0123456789abcdef".toCharArray();
+
+	/**
+	 * int 转换到byte[].
+	 * 
+	 * @param integer
+	 *            int
+	 * @return byte[]
+	 */
+	public static byte[] intToByteArray(final int integer) {
+		int byteNum = (40 - Integer
+				.numberOfLeadingZeros(integer < 0 ? ~integer : integer)) / 8;
+		byte[] byteArray = new byte[4];
+
+		for (int n = 0; n < byteNum; n++)
+			byteArray[3 - n] = (byte) (integer >>> (n * 8));
+
+		return (byteArray);
+	}
+
+	/**
+	 * byte[]转换到int.
+	 * 
+	 * @param b
+	 *            byte[]
+	 * @param offset
+	 *            int 偏移量
+	 * @return int
+	 */
+	public static int byteArrayToInt(byte[] b, int offset) {
+		int value = 0;
+		for (int i = 0; i < 4; i++) {
+			int shift = (4 - 1 - i) * 8;
+			value += (b[i + offset] & 0x000000FF) << shift;
+		}
+		return value;
+	}
+
+	/**
+	 * String的字符串转换成unicode的String
+	 * 
+	 * @param strText
+	 *            String 全角字符串
+	 * @return String 每个unicode之间无分隔符
+	 * @throws Exception
+	 */
+	public static String strToUnicode(String strText) throws Exception {
+		char c;
+		StringBuilder str = new StringBuilder();
+		int intAsc;
+		String strHex;
+		for (int i = 0; i < strText.length(); i++) {
+			c = strText.charAt(i);
+			intAsc = (int) c;
+			strHex = Integer.toHexString(intAsc);
+			if (intAsc > 128)
+				str.append("\\u");
+			else // 低位在前面补00
+				str.append("\\u00");
+			str.append(strHex);
+		}
+		return str.toString();
+	}
+
+	/**
+	 * unicode的String转换成String的字符串
+	 * 
+	 * @param hex
+	 *            String 16进制值字符串 （一个unicode为2byte）
+	 * @return String 全角字符串
+	 * @see CHexConver.unicodeToString("\\u0068\\u0065\\u006c\\u006c\\u006f")
+	 */
+	public static String unicodeToString(String hex) {
+		int t = hex.length() / 6;
+		int iTmp = 0;
+		StringBuilder str = new StringBuilder();
+		for (int i = 0; i < t; i++) {
+			String s = hex.substring(i * 6, (i + 1) * 6);
+			// 将16进制的string转为int
+			iTmp = (Integer.valueOf(s.substring(2, 4), 16) << 8)
+					| Integer.valueOf(s.substring(4), 16);
+			// 将int转换为字符
+			str.append(new String(Character.toChars(iTmp)));
+		}
+		return str.toString();
+	}
+
+	/**
+	 * 十六进制字符串转换成 ASCII字符串
+	 * 
+	 * @param str
+	 *            String Byte字符串
+	 * @return String 对应的字符串
+	 */
+	public static String hexStrToAsciiStr(String hexStr) {
+		hexStr = hexStr.toString().trim().replace(" ", "")
+				.toUpperCase(Locale.US);
+		char[] hexs = hexStr.toCharArray();
+		byte[] bytes = new byte[hexStr.length() / 2];
+		int iTmp = 0x00;
+
+		for (int i = 0; i < bytes.length; i++) {
+			iTmp = mHexStr.indexOf(hexs[2 * i]) << 4;
+			iTmp |= mHexStr.indexOf(hexs[2 * i + 1]);
+			bytes[i] = (byte) (iTmp & 0xFF);
+		}
+		return new String(bytes);
+	}
+
+	/**
+	 * 检查16进制字符串是否有效
+	 * 
+	 * @param sHex
+	 *            String 16进制字符串
+	 * @return boolean
+	 */
+	public static boolean checkHexStr(String sHex) {
+		String sTmp = sHex.toString().trim().replace(" ", "")
+				.toUpperCase(Locale.US);
+		int iLen = sTmp.length();
+
+		if (iLen > 1 && iLen % 2 == 0) {
+			for (int i = 0; i < iLen; i++)
+				if (!mHexStr.contains(sTmp.substring(i, i + 1)))
+					return false;
+			return true;
+		} else
+			return false;
+	}
+
+	/**
+	 * 字符串转换成十六进制字符串
+	 * 
+	 * @param str
+	 *            String 待转换的ASCII字符串
+	 * @return String 每个Byte之间空格分隔，如: [61 6C 6B]
+	 */
+	public static String asciiStrToHexStr(String str) {
+		StringBuilder sb = new StringBuilder();
+		byte[] bs = str.getBytes();
+
+		for (int i = 0; i < bs.length; i++) {
+			sb.append(BToA[(bs[i] & 0xFF) >> 4]);
+			sb.append(BToA[bs[i] & 0x0F]);
+			sb.append(' ');
+		}
+		return sb.toString().trim();
+	}
+	
+	/**
+	 * 数字转换成十六进制.
+	 * @param str int
+	 * @return String
+	 */
+	public static String asciiStrToHexStr(int str) {
+		return Integer.toHexString(str);
+	}
+
+	private final static String mHexStr = "0123456789ABCDEF";
+
 }

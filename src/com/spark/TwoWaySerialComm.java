@@ -5,7 +5,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import com.spark.utils.ArrayUtils;
-import com.spark.utils.HexAsciiStringConvertUtil;
+import com.spark.utils.StringTransformUtil;
 
 import gnu.io.CommPort;
 import gnu.io.CommPortIdentifier;
@@ -16,7 +16,7 @@ public class TwoWaySerialComm {
 		super();
 	}
 
-	void connect(String portName) throws Exception {
+	public void connect(String portName) throws Exception {
 		CommPortIdentifier portIdentifier = CommPortIdentifier
 				.getPortIdentifier(portName);
 		if (portIdentifier.isCurrentlyOwned()) {
@@ -27,7 +27,7 @@ public class TwoWaySerialComm {
 
 			if (commPort instanceof SerialPort) {
 				SerialPort serialPort = (SerialPort) commPort;
-				serialPort.setSerialPortParams(57600, SerialPort.DATABITS_8,
+				serialPort.setSerialPortParams(9600, SerialPort.DATABITS_8,
 						SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
 
 				InputStream in = serialPort.getInputStream();
@@ -57,7 +57,7 @@ public class TwoWaySerialComm {
 			try {
 				while ((len = this.in.read(buffer)) > -1) {
 					if (len != 0) {
-						System.out.print(HexAsciiStringConvertUtil.bytesToAscii(
+						System.out.println(StringTransformUtil.bytesToHexString(
 								ArrayUtils.subBytes(buffer, 0, len)));
 					}
 				}
@@ -84,15 +84,6 @@ public class TwoWaySerialComm {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		}
-	}
-
-	public static void main(String[] args) {
-		try {
-			(new TwoWaySerialComm()).connect("COM1");
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 	}
 

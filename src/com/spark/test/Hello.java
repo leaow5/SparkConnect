@@ -1,4 +1,4 @@
-package com.spark.utils.tests;
+package com.spark.test;
 
 
 import org.apache.logging.log4j.Level;
