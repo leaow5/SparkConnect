@@ -9,20 +9,23 @@ final public class StringTransformUtil {
 	}
 
 	/**
-	 * Convert byte[] to hex
+	 * Convert byte[] to param
 	 * string.这里我们可以将byte转换成int，然后利用Integer.toHexString(int)来转换成16进制字符串。
 	 * 
-	 * @param src
+	 * @param param
 	 *            byte[] data
-	 * @return hex string
+	 * @return param string
 	 */
-	public static String bytesToHexString(byte[] src) {
+	public static String bytesToHexString(byte[] param) {
+		if (param == null || param.length == 0)
+			return "";
+
 		StringBuilder stringBuilder = new StringBuilder("");
-		if (src == null || src.length <= 0) {
+		if (param == null || param.length <= 0) {
 			return null;
 		}
-		for (int i = 0; i < src.length; i++) {
-			int v = src[i] & 0xFF;
+		for (int i = 0; i < param.length; i++) {
+			int v = param[i] & 0xFF;
 			String hv = Integer.toHexString(v);
 			if (hv.length() < 2) {
 				stringBuilder.append(0);
@@ -35,17 +38,19 @@ final public class StringTransformUtil {
 	/**
 	 * 字节数组到ascii.
 	 * 
-	 * @param bytes
+	 * @param param
 	 *            byte[]
 	 * @return String
 	 */
-	static public String bytesToAscii(byte[] bytes) {
+	static public String bytesToAscii(byte[] param) {
+		if (param == null || param.length == 0)
+			return "";
 
 		StringBuffer tStringBuf = new StringBuffer();
-		char[] tChars = new char[bytes.length];
+		char[] tChars = new char[param.length];
 
-		for (int i = 0; i < bytes.length; i++)
-			tChars[i] = (char) bytes[i];
+		for (int i = 0; i < param.length; i++)
+			tChars[i] = (char) param[i];
 
 		tStringBuf.append(tChars);
 
@@ -55,32 +60,35 @@ final public class StringTransformUtil {
 	/**
 	 * 字符串到数组.
 	 * 
-	 * @param bytes
+	 * @param param
 	 *            byte[]
 	 * @return String
 	 * @throws UnsupportedEncodingException
 	 */
-	static public String bytesToGbk(byte[] bytes)
+	static public String bytesToGbk(byte[] param)
 			throws UnsupportedEncodingException {
-		String s1 = new String(bytes, "ISO-8859-1");
+		if (param == null || param.length == 0)
+			return "";
+
+		String s1 = new String(param, "ISO-8859-1");
 		String s2 = new String(s1.getBytes("ISO-8859-1"), "gb2312");
 		return s2;
 	}
 
 	/**
-	 * Convert hex string to byte[]
+	 * Convert param string to byte[]
 	 * 
-	 * @param hexString
-	 *            the hex string
+	 * @param param
+	 *            the param string
 	 * @return byte[]
 	 */
-	public static byte[] hexToBytes(String hexString) {
-		if (hexString == null || hexString.equals("")) {
+	public static byte[] hexToBytes(String param) {
+		if (param == null || param.equals("")) {
 			return null;
 		}
-		hexString = hexString.toUpperCase();
-		int length = hexString.length() / 2;
-		char[] hexChars = hexString.toCharArray();
+		param = param.toUpperCase();
+		int length = param.length() / 2;
+		char[] hexChars = param.toCharArray();
 		byte[] d = new byte[length];
 		for (int i = 0; i < length; i++) {
 			int pos = i * 2;
@@ -93,27 +101,29 @@ final public class StringTransformUtil {
 	/**
 	 * 字符串到数组.
 	 * 
-	 * @param ascii
+	 * @param param
 	 *            String
 	 * @return byte[]
 	 * @throws UnsupportedEncodingException
 	 */
-	static public byte[] asciiToBytes(String ascii)
+	static public byte[] asciiToBytes(String param)
 			throws UnsupportedEncodingException {
-		return ascii.getBytes("US-ASCII");
+		return param.getBytes("US-param");
 	}
 
 	/**
 	 * 字符串到数组.
 	 * 
-	 * @param ascii
+	 * @param param
 	 *            String
 	 * @return byte[]
 	 * @throws UnsupportedEncodingException
 	 */
-	static public byte[] gbkToBytes(String gbk)
+	static public byte[] gbkToBytes(String param)
 			throws UnsupportedEncodingException {
-		String s1 = new String(gbk.getBytes("gb2312"), "ISO-8859-1");
+		if (param == null)
+			return null;
+		String s1 = new String(param.getBytes("gb2312"), "ISO-8859-1");
 		return s1.getBytes("ISO-8859-1");
 	}
 
@@ -125,7 +135,7 @@ final public class StringTransformUtil {
 	 * @return byte
 	 */
 	private static byte charToByte(char c) {
-		return (byte) "0123456789ABCDEF".indexOf(c);
+		return (byte) mHexStr.indexOf(c);
 	}
 
 	/** */
@@ -135,6 +145,9 @@ final public class StringTransformUtil {
 	 * @输出结果: 10进制串
 	 */
 	public static String bcdToStr(byte[] bytes) {
+		if (bytes == null || bytes.length == 0)
+			return "";
+
 		StringBuffer temp = new StringBuffer(bytes.length * 2);
 
 		for (int i = 0; i < bytes.length; i++) {
@@ -150,13 +163,15 @@ final public class StringTransformUtil {
 	 * @输入参数: 10进制串
 	 * @输出结果: BCD码
 	 */
-	public static byte[] strToBcd(String asc) {
-		int len = asc.length();
+	public static byte[] strToBcd(String param) {
+		if (param == null || param.equals(""))
+			return null;
+		int len = param.length();
 		int mod = len % 2;
 
 		if (mod != 0) {
-			asc = "0" + asc;
-			len = asc.length();
+			param = "0" + param;
+			len = param.length();
 		}
 
 		byte abt[] = new byte[len];
@@ -165,10 +180,10 @@ final public class StringTransformUtil {
 		}
 
 		byte bbt[] = new byte[len];
-		abt = asc.getBytes();
+		abt = param.getBytes();
 		int j, k;
 
-		for (int p = 0; p < asc.length() / 2; p++) {
+		for (int p = 0; p < param.length() / 2; p++) {
 			if ((abt[2 * p] >= '0') && (abt[2 * p] <= '9')) {
 				j = abt[2 * p] - '0';
 			} else if ((abt[2 * p] >= 'a') && (abt[2 * p] <= 'z')) {
@@ -195,14 +210,15 @@ final public class StringTransformUtil {
 	/**
 	 * 转换到十六进制.
 	 * 
-	 * @param asc
+	 * @param param
 	 *            String
 	 * @return String
 	 */
-	public static String strToHex(String asc) {
-
+	public static String strToHex(String param) {
+		if (param == null || param.equals(""))
+			return "";
 		StringBuilder stringBuilder = new StringBuilder("");
-		int v = Integer.valueOf(asc);
+		int v = Integer.valueOf(param);
 		String hv = Integer.toHexString(v);
 		if (hv.length() < 2) {
 			stringBuilder.append(0);
@@ -268,18 +284,21 @@ final public class StringTransformUtil {
 	/**
 	 * String的字符串转换成unicode的String
 	 * 
-	 * @param strText
+	 * @param param
 	 *            String 全角字符串
 	 * @return String 每个unicode之间无分隔符
 	 * @throws Exception
 	 */
-	public static String strToUnicode(String strText) throws Exception {
+	public static String strToUnicode(String param) throws Exception {
+		if (param == null || param.equals(""))
+			return "";
+
 		char c;
 		StringBuilder str = new StringBuilder();
 		int intAsc;
 		String strHex;
-		for (int i = 0; i < strText.length(); i++) {
-			c = strText.charAt(i);
+		for (int i = 0; i < param.length(); i++) {
+			c = param.charAt(i);
 			intAsc = (int) c;
 			strHex = Integer.toHexString(intAsc);
 			if (intAsc > 128)
@@ -294,17 +313,20 @@ final public class StringTransformUtil {
 	/**
 	 * unicode的String转换成String的字符串
 	 * 
-	 * @param hex
+	 * @param param
 	 *            String 16进制值字符串 （一个unicode为2byte）
 	 * @return String 全角字符串
 	 * @see CHexConver.unicodeToString("\\u0068\\u0065\\u006c\\u006c\\u006f")
 	 */
-	public static String unicodeToString(String hex) {
-		int t = hex.length() / 6;
+	public static String unicodeToString(String param) {
+		if (param == null || param.equals(""))
+			return "";
+
+		int t = param.length() / 6;
 		int iTmp = 0;
 		StringBuilder str = new StringBuilder();
 		for (int i = 0; i < t; i++) {
-			String s = hex.substring(i * 6, (i + 1) * 6);
+			String s = param.substring(i * 6, (i + 1) * 6);
 			// 将16进制的string转为int
 			iTmp = (Integer.valueOf(s.substring(2, 4), 16) << 8)
 					| Integer.valueOf(s.substring(4), 16);
@@ -315,15 +337,38 @@ final public class StringTransformUtil {
 	}
 
 	/**
-	 * 十六进制字符串转换成 ASCII字符串
+	 * 十六进制字符串转换成 ascii int.
+	 * 
+	 * @param hexStr
+	 *            String
+	 * @return String
+	 * @throws Exception
+	 *             非法字符！
+	 */
+	public static int hexStrToAsciiInt(String hexStr) throws Exception {
+		if (!checkHexStr(hexStr)) {
+			throw new Exception("非法字符！");
+		}
+		return Integer.parseInt(hexStr, 16);
+	}
+
+	/**
+	 * 十六进制字符串转换成 ASCII字符串.
 	 * 
 	 * @param str
 	 *            String Byte字符串
 	 * @return String 对应的字符串
+	 * @throws Exception
+	 *             输入字符串必须是偶数个数
 	 */
-	public static String hexStrToAsciiStr(String hexStr) {
+	public static String hexStrToAsciiStr(String hexStr) throws Exception {
 		hexStr = hexStr.toString().trim().replace(" ", "")
 				.toUpperCase(Locale.US);
+		// 必须要验证输入的合法性
+		int remainder = hexStr.length() % 2;
+		if (remainder != 0) {
+			throw new Exception("输入字符串必须是偶数个数！");
+		}
 		char[] hexs = hexStr.toCharArray();
 		byte[] bytes = new byte[hexStr.length() / 2];
 		int iTmp = 0x00;
@@ -339,12 +384,15 @@ final public class StringTransformUtil {
 	/**
 	 * 检查16进制字符串是否有效
 	 * 
-	 * @param sHex
+	 * @param param
 	 *            String 16进制字符串
 	 * @return boolean
 	 */
-	public static boolean checkHexStr(String sHex) {
-		String sTmp = sHex.toString().trim().replace(" ", "")
+	public static boolean checkHexStr(String param) {
+		if (param == null)
+			return false;
+
+		String sTmp = param.toString().trim().replace(" ", "")
 				.toUpperCase(Locale.US);
 		int iLen = sTmp.length();
 
@@ -365,6 +413,8 @@ final public class StringTransformUtil {
 	 * @return String 每个Byte之间空格分隔，如: [61 6C 6B]
 	 */
 	public static String asciiStrToHexStr(String str) {
+		if (str == null)
+			return "";
 		StringBuilder sb = new StringBuilder();
 		byte[] bs = str.getBytes();
 
@@ -375,14 +425,16 @@ final public class StringTransformUtil {
 		}
 		return sb.toString().trim();
 	}
-	
+
 	/**
 	 * 数字转换成十六进制.
-	 * @param str int
+	 * 
+	 * @param param
+	 *            int
 	 * @return String
 	 */
-	public static String asciiStrToHexStr(int str) {
-		return Integer.toHexString(str);
+	public static String asciiStrToHexStr(int param) {
+		return Integer.toHexString(param);
 	}
 
 	private final static String mHexStr = "0123456789ABCDEF";
