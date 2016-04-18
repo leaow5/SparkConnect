@@ -42,7 +42,7 @@ final public class StringTransformUtil {
 	 *            byte[]
 	 * @return String
 	 */
-	static public String bytesToAscii(byte[] param) {
+	static public String bytesToAsciiString(byte[] param) {
 		if (param == null || param.length == 0)
 			return "";
 

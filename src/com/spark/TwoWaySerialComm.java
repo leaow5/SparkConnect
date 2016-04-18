@@ -12,6 +12,9 @@ import gnu.io.CommPortIdentifier;
 import gnu.io.SerialPort;
 
 public class TwoWaySerialComm {
+
+	private static int codeType = 0;
+
 	public TwoWaySerialComm() {
 		super();
 	}
@@ -52,13 +55,20 @@ public class TwoWaySerialComm {
 		}
 
 		public void run() {
-			byte[] buffer = new byte[1024];
+			byte[] buffer = new byte[4096];
 			int len = -1;
 			try {
 				while ((len = this.in.read(buffer)) > -1) {
 					if (len != 0) {
-						System.out.println(StringTransformUtil.bytesToHexString(
-								ArrayUtils.subBytes(buffer, 0, len)));
+						if (codeType == 1) {
+							System.out.println(StringTransformUtil
+									.bytesToHexString(ArrayUtils
+											.subBytes(buffer, 0, len)));
+						} else {
+							System.out.println(StringTransformUtil
+									.bytesToAsciiString(ArrayUtils
+											.subBytes(buffer, 0, len)));
+						}
 					}
 				}
 			} catch (IOException e) {
@@ -78,8 +88,12 @@ public class TwoWaySerialComm {
 		public void run() {
 			try {
 				int c = 0;
-				while ((c = System.in.read()) > -1) {
-					this.out.write(c);
+				byte[] readBuffer = new byte[4096];
+
+				while ((c = System.in.read(readBuffer)) > -1) {
+					String d=StringTransformUtil.bytesToAsciiString(readBuffer);
+					String e =StringTransformUtil.asciiStrToHexStr(d.trim());
+					this.out.write(e.getBytes());
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
