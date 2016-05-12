@@ -2,8 +2,10 @@ package com.spark.utils;
 
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.HashSet;
 import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import gnu.io.CommPort;
 import gnu.io.CommPortIdentifier;
@@ -12,17 +14,24 @@ import gnu.io.PortInUseException;
 public final class WinEnvUtils {
 
 	/**
-	 * 获取端口.
-	 * 返回例如 COM1,COM2.
+	 * 日志.
 	 */
-	static List<String> getPortId() {
-		java.util.Enumeration<CommPortIdentifier> portEnum = CommPortIdentifier
+	static Logger logger = LogManager.getLogger(WinEnvUtils.class.getName());
+
+	/**
+	 * 获取端口. 返回例如 COM1,COM2.
+	 */
+	public static List<String> getPortId() {
+		final java.util.Enumeration<CommPortIdentifier> portEnum = CommPortIdentifier
 				.getPortIdentifiers();
 		CommPortIdentifier portId;
-		List<String> portName = new ArrayList<String>();
+		final List<String> portName = new ArrayList<String>();
 		while (portEnum.hasMoreElements()) {
 			portId = (CommPortIdentifier) portEnum.nextElement();
-			portName.add(portId.getName());
+			if (portId.getPortType() == CommPortIdentifier.PORT_SERIAL) {
+				portName.add(portId.getName());
+				logger.info("获取到串行接口：" + portId.getName());
+			}
 		}
 		return portName;
 	}
@@ -49,34 +58,36 @@ public final class WinEnvUtils {
 			return "unknown type";
 		}
 	}
+
 	/**
 	 * @return A HashSet containing the CommPortIdentifier for all serial ports
 	 *         that are not currently being used.
 	 */
-	public static HashSet<CommPortIdentifier> getAvailableSerialPorts() {
-		HashSet<CommPortIdentifier> h = new HashSet<CommPortIdentifier>();
-		Enumeration thePorts = CommPortIdentifier.getPortIdentifiers();
+	public static boolean getAvailableSerialPorts(String comStr) {
+		logger.info("传递串口单号：" + comStr);
+		final Enumeration thePorts = CommPortIdentifier.getPortIdentifiers();
 		while (thePorts.hasMoreElements()) {
 			CommPortIdentifier com = (CommPortIdentifier) thePorts
 					.nextElement();
-			switch (com.getPortType()) {
-			case CommPortIdentifier.PORT_SERIAL:
-				try {
-					CommPort thePort = com.open("test", 50);
-					thePort.close();
-					h.add(com);
-				} catch (PortInUseException e) {
-
-					System.out.println("Port, " + com.getName()
-							+ ", is in use.");
-
-				} catch (Exception e) {
-					System.out.println("Failed to open port " + com.getName()
-							+ e);
+			if (com.getName().equalsIgnoreCase(comStr)) {
+				switch (com.getPortType()) {
+				case CommPortIdentifier.PORT_SERIAL:
+					try {
+						CommPort thePort = com.open("test", 50);
+						thePort.close();
+						return true;
+					} catch (PortInUseException e) {
+						logger.info("Port, " + com.getName() + ", is in use.");
+						return false;
+					} catch (Exception e) {
+						logger.debug(
+								"Failed to open port " + com.getName() + e);
+						return false;
+					}
 				}
 			}
 		}
-		return h;
+		return false;
 	}
-	
+
 }
