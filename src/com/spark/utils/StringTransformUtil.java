@@ -439,4 +439,7 @@ final public class StringTransformUtil {
 
 	private final static String mHexStr = "0123456789ABCDEF";
 
+	public static void main(String[] args) {
+		System.out.println(Integer.valueOf("11111111", 2));
+	}
 }

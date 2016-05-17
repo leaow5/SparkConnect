@@ -1,7 +1,6 @@
 package com.spark.core;
 
 import java.io.IOException;
-import java.util.concurrent.PriorityBlockingQueue;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -14,7 +13,7 @@ import gnu.io.SerialPort;
 
 public final class SerialPortFactory {
 	private static volatile SerialPort instance = null;
-	private PriorityBlockingQueue<Runnable> queue = new PriorityBlockingQueue<Runnable>();
+	private static volatile SerialConnecter connecter = null;
 
 	/**
 	 * 这个方法用来设置和获取连接类的唯一入口. 分两种情况： 1）当传入参数的时候，初始化连接，如果当前连接对象非空，
@@ -28,14 +27,14 @@ public final class SerialPortFactory {
 	 */
 	public static SerialPort getSerialPort(String portName)
 			throws IOException, Exception {
-		if(StringUtils.isEmpty(portName)){
+		if (StringUtils.isEmpty(portName)) {
 			return instance;
 		}
-		//如果当前的连接有效的话，先关闭
-		if (instance == null){
+		// 如果当前的连接有效的话，先关闭
+		if (instance != null && StringUtils.isNotEmpty(portName)) {
 			instance.close();
 		}
-		//初始化连接
+		// 初始化连接
 		if (instance == null) {
 			synchronized (SerialPortFactory.class) {
 				if (instance == null) {
@@ -57,4 +56,44 @@ public final class SerialPortFactory {
 		return instance;
 	}
 
+	public static SerialConnecter getSerialConnecter()
+			throws IOException, Exception {
+		if (connecter != null) {
+			return connecter;
+		}
+
+		if (connecter == null) {
+			connecter = SerialConnecter.newConnect();
+			if (connecter != null) {
+				return connecter;
+			}
+		}
+		return connecter;
+	}
+
+	/**
+	 * 初始化上下文
+	 * @throws IOException
+	 * @throws Exception
+	 */
+	public static void initConnect() throws IOException, Exception {
+		if (instance != null && connecter == null) {
+			synchronized (SerialPortFactory.class) {
+				if (instance != null && connecter == null) {
+
+					connecter = SerialConnecter.newConnect();
+					connecter.initConnect();
+				}
+			}
+		}
+	}
+	/**
+	 * 发送消息.
+	 * @param arg
+	 * @return
+	 */
+	public static boolean  sendMessage(CallBack arg){
+		connecter.sendMessage(arg);
+		return true;
+	}
 }
