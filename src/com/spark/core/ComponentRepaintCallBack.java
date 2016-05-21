@@ -6,9 +6,16 @@ public class ComponentRepaintCallBack
 		implements CallBack, Comparable<ComponentRepaintCallBack> {
 	// 组件回调用途
 	private JComponent component;
-	private final int priority = 10;
+	private int priority = 10;
+	public int getPriority() {
+		return priority;
+	}
+
+	public void setPriority(int param) {
+		priority = param;
+	}
 	// 命令保存
-	private String orderMessage;
+	private byte[] orderMessage;
 	private CallBackState callBackState = CallBackState.MESSAGE_NOTREADY;
 
 	public JComponent getComponent() {
@@ -19,7 +26,7 @@ public class ComponentRepaintCallBack
 		this.component = component;
 	}
 
-	public void setOrderMessage(String orderMessage) {
+	public void setOrderMessage(byte[] orderMessage) {
 		this.orderMessage = orderMessage;
 	}
 
@@ -34,7 +41,7 @@ public class ComponentRepaintCallBack
 	}
 
 	@Override
-	public String getOrderMessage() {
+	public byte[] getOrderMessage() {
 		return orderMessage;
 	}
 

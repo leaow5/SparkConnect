@@ -157,9 +157,8 @@ public class SerialConnecter {
 					if (call != null && call
 							.getCallBackState() == CallBackState.MESSAGE_READY) {
 						call.setCallBackState(CallBackState.MESSAGE_SENDING);
-						String e = StringTransformUtil
-								.asciiStrToHexStr(call.getOrderMessage());
-						this.out.write(e.getBytes());
+						byte[] e = call.getOrderMessage();
+						this.out.write(e);
 						call.setCallBackState(CallBackState.MESSAGE_SENDED);
 					}
 				} catch (IOException e) {
@@ -171,11 +170,19 @@ public class SerialConnecter {
 	}
 
 	public static void main(String[] args) throws IOException, Exception {
-		SerialPortFactory.getSerialPort("COM1");
+		SerialPortFactory.getSerialPort("COM3");
 		SerialPortFactory.initConnect();
+		//消息一
+//		ComponentRepaintCallBack crcb2 = new ComponentRepaintCallBack(null);
+//		crcb2.setOrderMessage(StringTransformUtil.hexToBytes("1234567"));
+//		crcb2.setCallBackState(CallBackState.MESSAGE_READY);
+//		crcb2.setPriority(20);
+//		SerialPortFactory.sendMessage(crcb2);
+		//消息二
 		ComponentRepaintCallBack crcb = new ComponentRepaintCallBack(null);
-		crcb.setOrderMessage("HelloWorld");
+		crcb.setOrderMessage(StringTransformUtil.hexToBytes("55AA01080100F60D"));
 		crcb.setCallBackState(CallBackState.MESSAGE_READY);
+		crcb.setPriority(0);
 		SerialPortFactory.sendMessage(crcb);
 		// ini
 	}

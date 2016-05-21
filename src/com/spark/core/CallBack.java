@@ -14,7 +14,7 @@ public interface CallBack {
 	 * 
 	 * @return
 	 */
-	String getOrderMessage();
+	byte[] getOrderMessage();
 
 	/**
 	 * 获取消息状态
