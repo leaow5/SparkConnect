@@ -65,8 +65,7 @@ final public class StringTransformUtil {
 	 * @return String
 	 * @throws UnsupportedEncodingException
 	 */
-	static public String bytesToGbk(byte[] param)
-			throws UnsupportedEncodingException {
+	static public String bytesToGbk(byte[] param) throws UnsupportedEncodingException {
 		if (param == null || param.length == 0)
 			return "";
 
@@ -92,8 +91,7 @@ final public class StringTransformUtil {
 		byte[] d = new byte[length];
 		for (int i = 0; i < length; i++) {
 			int pos = i * 2;
-			d[i] = (byte) (charToByte(hexChars[pos]) << 4
-					| charToByte(hexChars[pos + 1]));
+			d[i] = (byte) (charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));
 		}
 		return d;
 	}
@@ -106,8 +104,7 @@ final public class StringTransformUtil {
 	 * @return byte[]
 	 * @throws UnsupportedEncodingException
 	 */
-	static public byte[] asciiToBytes(String param)
-			throws UnsupportedEncodingException {
+	static public byte[] asciiToBytes(String param) throws UnsupportedEncodingException {
 		return param.getBytes("US-param");
 	}
 
@@ -119,8 +116,7 @@ final public class StringTransformUtil {
 	 * @return byte[]
 	 * @throws UnsupportedEncodingException
 	 */
-	static public byte[] gbkToBytes(String param)
-			throws UnsupportedEncodingException {
+	static public byte[] gbkToBytes(String param) throws UnsupportedEncodingException {
 		if (param == null)
 			return null;
 		String s1 = new String(param.getBytes("gb2312"), "ISO-8859-1");
@@ -154,8 +150,7 @@ final public class StringTransformUtil {
 			temp.append((byte) ((bytes[i] & 0xf0) >>> 4));
 			temp.append((byte) (bytes[i] & 0x0f));
 		}
-		return temp.toString().substring(0, 1).equalsIgnoreCase("0")
-				? temp.toString().substring(1) : temp.toString();
+		return temp.toString().substring(0, 1).equalsIgnoreCase("0") ? temp.toString().substring(1) : temp.toString();
 	}
 
 	/**
@@ -253,8 +248,7 @@ final public class StringTransformUtil {
 	 * @return byte[]
 	 */
 	public static byte[] intToByteArray(final int integer) {
-		int byteNum = (40 - Integer
-				.numberOfLeadingZeros(integer < 0 ? ~integer : integer)) / 8;
+		int byteNum = (40 - Integer.numberOfLeadingZeros(integer < 0 ? ~integer : integer)) / 8;
 		byte[] byteArray = new byte[4];
 
 		for (int n = 0; n < byteNum; n++)
@@ -328,8 +322,7 @@ final public class StringTransformUtil {
 		for (int i = 0; i < t; i++) {
 			String s = param.substring(i * 6, (i + 1) * 6);
 			// 将16进制的string转为int
-			iTmp = (Integer.valueOf(s.substring(2, 4), 16) << 8)
-					| Integer.valueOf(s.substring(4), 16);
+			iTmp = (Integer.valueOf(s.substring(2, 4), 16) << 8) | Integer.valueOf(s.substring(4), 16);
 			// 将int转换为字符
 			str.append(new String(Character.toChars(iTmp)));
 		}
@@ -362,8 +355,7 @@ final public class StringTransformUtil {
 	 *             输入字符串必须是偶数个数
 	 */
 	public static String hexStrToAsciiStr(String hexStr) throws Exception {
-		hexStr = hexStr.toString().trim().replace(" ", "")
-				.toUpperCase(Locale.US);
+		hexStr = hexStr.toString().trim().replace(" ", "").toUpperCase(Locale.US);
 		// 必须要验证输入的合法性
 		int remainder = hexStr.length() % 2;
 		if (remainder != 0) {
@@ -392,8 +384,7 @@ final public class StringTransformUtil {
 		if (param == null)
 			return false;
 
-		String sTmp = param.toString().trim().replace(" ", "")
-				.toUpperCase(Locale.US);
+		String sTmp = param.toString().trim().replace(" ", "").toUpperCase(Locale.US);
 		int iLen = sTmp.length();
 
 		if (iLen > 1 && iLen % 2 == 0) {
@@ -442,5 +433,35 @@ final public class StringTransformUtil {
 	public static void main(String[] args) {
 		byte[] arr = hexToBytes("55AA01080100F60D");
 		System.out.println(arr);
+	}
+
+	public static String simpleClassName(Object o) {
+		if (o == null) {
+			return "null_object";
+		} else {
+			return simpleClassName(o.getClass());
+		}
+	}
+
+	/**
+	 * Generates a simplified name from a {@link Class}. Similar to
+	 * {@link Class#getSimpleName()}, but it works fine with anonymous classes.
+	 */
+	public static String simpleClassName(Class<?> clazz) {
+		String className = checkNotNull(clazz, "clazz").getName();
+		final int lastDotIdx = className.lastIndexOf(PACKAGE_SEPARATOR_CHAR);
+		if (lastDotIdx > -1) {
+			return className.substring(lastDotIdx + 1);
+		}
+		return className;
+	}
+
+	private static final char PACKAGE_SEPARATOR_CHAR = '.';
+
+	public static <T> T checkNotNull(T arg, String text) {
+		if (arg == null) {
+			throw new NullPointerException(text);
+		}
+		return arg;
 	}
 }
