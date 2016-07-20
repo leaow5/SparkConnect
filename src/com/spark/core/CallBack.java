@@ -1,5 +1,7 @@
 package com.spark.core;
 
+import java.util.Date;
+
 public interface CallBack {
 	/**
 	 * 执行回调方法
@@ -29,4 +31,10 @@ public interface CallBack {
 	 * @return
 	 */
 	void setCallBackState(CallBackState arg);
+	
+	/**
+	 * 设置延迟时间.
+	 * @return Date
+	 */
+	Date getDelayTime();
 }

@@ -4,7 +4,8 @@ import java.util.Date;
 
 import javax.swing.JComponent;
 
-public class ComponentRepaintCallBack extends abstractCallBack implements CallBack {
+public class CommandLineCallBack extends abstractCallBack implements CallBack {
+
 	// 组件回调用途
 	private JComponent component;
 
@@ -25,7 +26,7 @@ public class ComponentRepaintCallBack extends abstractCallBack implements CallBa
 		this.orderMessage = orderMessage;
 	}
 
-	public ComponentRepaintCallBack(JComponent arg) {
+	public CommandLineCallBack(JComponent arg) {
 		component = arg;
 	}
 
