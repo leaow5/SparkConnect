@@ -3,6 +3,8 @@ package com.spark.core;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -11,7 +13,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.spark.test.HelloLogger;
 import com.spark.utils.ArrayUtils;
 import com.spark.utils.StringTransformUtil;
 
@@ -23,6 +24,22 @@ public class SerialConnecter {
 	 */
 	private SerialConnecter() {
 
+	}
+
+	public String getSynCallBackReceived(CallBack cb) {
+		if (cb.getClass() != SynCallBack.class) {
+			return null;
+		}
+		long startTime = System.currentTimeMillis();
+		if (retValue.get(StringTransformUtil.bytesToHexString(cb.getOrderMessage())) != null) {
+			return retValue.get(StringTransformUtil.bytesToHexString(cb.getOrderMessage()));
+		} else {
+
+			while (System.currentTimeMillis() - startTime >= 2000) {
+				return retValue.get(StringTransformUtil.bytesToHexString(cb.getOrderMessage()));
+			}
+		}
+		return null;
 	}
 
 	static Logger logger = LogManager.getLogger(SerialConnecter.class.getName());
@@ -39,6 +56,7 @@ public class SerialConnecter {
 	static private volatile BlockingQueue<String> receiveQueue = new ArrayBlockingQueue<String>(100);
 	// 先进先出队列:已经发出的命令
 	static private volatile BlockingQueue<CallBack> sendedQueue = new ArrayBlockingQueue<CallBack>(100);
+	static private Map<String, String> retValue = new HashMap<String, String>();
 	// 控制线程退出
 	private static volatile boolean notExist = true;
 
@@ -86,7 +104,7 @@ public class SerialConnecter {
 		sc.reader = new Thread(new SerialReader(sc.instance.getInputStream(), sc.sendQueue));
 		// 写命令
 		sc.writer = new Thread(new SerialWriter(sc.instance.getOutputStream(), sc.sendQueue));
-		sc.consumer = new Thread(new SerialWriter(sc.instance.getOutputStream(), sc.sendQueue));
+		sc.consumer = new Thread(new SerialConsumer(sc.receiveQueue, sc.sendedQueue));
 		sc.reader.start();
 		sc.writer.start();
 	}
@@ -159,7 +177,8 @@ public class SerialConnecter {
 
 			while (notExist) {
 				try {
-					CallBack call = queue.peek();
+					// poll取走BlockingQueue里排在首位的对象,取不到时返回null
+					CallBack call = queue.poll();
 					if (call != null && call.getCallBackState() == CallBackState.MESSAGE_READY) {
 						call.setCallBackState(CallBackState.MESSAGE_SENDING);
 						byte[] e = call.getOrderMessage();
@@ -177,8 +196,8 @@ public class SerialConnecter {
 
 	/** 首先放入队列，然后再发送消息 */
 	public static class SerialConsumer implements Runnable {
-		private BlockingQueue<String> bq1;
-		private BlockingQueue<CallBack> bq2;
+		private volatile BlockingQueue<String> bq1;
+		private volatile BlockingQueue<CallBack> bq2;
 
 		public SerialConsumer(BlockingQueue<String> arg1, BlockingQueue<CallBack> arg2) {
 			this.bq1 = arg1;
@@ -188,42 +207,56 @@ public class SerialConnecter {
 		public void run() {
 
 			while (notExist) {
-				while (bq1.size() > 0) {
+				while (!bq1.isEmpty()) {
+					if (bq2.size() == 0) {
+						// 说明命令已经执行完了，又收到下位机的命令，直接抛弃
+						bq1.clear();
+						continue;
+					}
+
+					// 开始匹配命令：第5位到第8位是一样的，就是匹配上了
+					String revOrder = bq1.poll();
+					// 如果命令为空，就直接作废掉，防止溢出
+					if (bq2.size() == 0) {
+						logger.error("没有相应的命令，直接作废收到的命令" + revOrder);
+					}
+
+					// 获取最后一个命令，用来判断是否当前是否是最后一个
+					// int length = bq2.size();
+					// 备份用
+					// final BlockingQueue<CallBack> bq3 = new
+					// ArrayBlockingQueue<CallBack>(100);
+					while (!bq2.isEmpty()) {
+						CallBack temp = bq2.poll();
+						if (temp == null) {
+							break;
+						}
+						// 判断是否是匹配
+						if (StringTransformUtil.bytesToHexString(temp.getOrderMessage()).substring(4, 9)
+								.equalsIgnoreCase(revOrder.substring(4, 9))) {
+
+							if (temp.getClass() == CommandLineCallBack.class
+									|| temp.getClass() == ComponentRepaintCallBack.class) {
+								// 提交异步处理
+								ExecutorServices.getExecutorServices().submit(new abstrackRunnable(temp, revOrder));
+							} else {
+
+								retValue.put(StringTransformUtil.bytesToHexString(temp.getOrderMessage()), revOrder);
+							}
+						} else {
+							// 移到新的队列中
+							bq2.offer(temp);
+						}
+
+					}
+					// 出对列，重新赋值
+					// bq2 = null;，这里可能会导致消息漏掉，删除
+					// bq2 = bq3;
 
 				}
-				// try {
-				// CallBack call = queue.peek();
-				// if (call != null && call.getCallBackState() ==
-				// CallBackState.MESSAGE_READY) {
-				// call.setCallBackState(CallBackState.MESSAGE_SENDING);
-				// byte[] e = call.getOrderMessage();
-				// this.out.write(e);
-				// call.setCallBackState(CallBackState.MESSAGE_SENDED);
-				// sendedQueue.offer(call);
-				// }
-				// } catch (IOException e) {
-				// e.printStackTrace();
-				// }
 			}
 
 		}
 	}
 
-	public static void main(String[] args) throws IOException, Exception {
-		SerialPortFactory.getSerialPort("COM3");
-		SerialPortFactory.initConnect();
-		// 消息一
-		// ComponentRepaintCallBack crcb2 = new ComponentRepaintCallBack(null);
-		// crcb2.setOrderMessage(StringTransformUtil.hexToBytes("1234567"));
-		// crcb2.setCallBackState(CallBackState.MESSAGE_READY);
-		// crcb2.setPriority(20);
-		// SerialPortFactory.sendMessage(crcb2);
-		// 消息二
-		ComponentRepaintCallBack crcb = new ComponentRepaintCallBack(null);
-		crcb.setOrderMessage(StringTransformUtil.hexToBytes("55AA01080100F60D"));
-		crcb.setCallBackState(CallBackState.MESSAGE_READY);
-		crcb.setPriority(0);
-		SerialPortFactory.sendMessage(crcb);
-		// ini
-	}
 }
