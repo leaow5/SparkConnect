@@ -58,7 +58,42 @@ public class SerialConnecter {
 	static private volatile BlockingQueue<CallBack> sendedQueue = new ArrayBlockingQueue<CallBack>(100);
 	static private Map<String, String> retValue = new HashMap<String, String>();
 	// 控制线程退出
-	private static volatile boolean notExist = true;
+	private static volatile boolean notExit = true;
+	// 是否阻止发送队列继续加入，退出时控制
+	private static volatile boolean join = true;
+
+	/**
+	 * 关闭连接.
+	 * 
+	 * @param isForce
+	 *            boolean 是否强制
+	 * @return
+	 */
+	public static boolean close(boolean isForce) {
+		if (isForce) {
+			notExit = true;
+			return true;
+		} else {
+			join = false;
+			while (!receiveQueue.isEmpty()) {
+				// 空循环
+			}
+			return true;
+		}
+	}
+
+	/**
+	 * 清空队列.
+	 * 
+	 * @return boolean
+	 */
+	public boolean reset() {
+		sendQueue.clear();
+		receiveQueue.clear();
+		sendedQueue.clear();
+		retValue.clear();
+		return true;
+	}
 
 	/**
 	 * 发送消息.
@@ -68,7 +103,7 @@ public class SerialConnecter {
 	 * @return boolean
 	 */
 	public boolean sendMessage(CallBack arg) {
-		sendQueue.put(arg);
+		sendQueue.offer(arg);
 		return true;
 	}
 
@@ -104,9 +139,12 @@ public class SerialConnecter {
 		sc.reader = new Thread(new SerialReader(sc.instance.getInputStream(), sc.sendQueue));
 		// 写命令
 		sc.writer = new Thread(new SerialWriter(sc.instance.getOutputStream(), sc.sendQueue));
+		// 消费命令
 		sc.consumer = new Thread(new SerialConsumer(sc.receiveQueue, sc.sendedQueue));
+		// 启动
 		sc.reader.start();
 		sc.writer.start();
+		sc.consumer.start();
 	}
 
 	/** 先取消息再取队列里面的元素调用 */
@@ -124,16 +162,17 @@ public class SerialConnecter {
 		public void run() {
 			byte[] buffer = new byte[4096];
 			int len = -1;
-
-			while (notExist) {
+			StringBuffer sb = new StringBuffer();
+			while (notExit) {
 				try {
 					if ((len = this.in.read(buffer)) > -1) {
 						if (len > 0) {
-							StringBuffer sb = new StringBuffer();
+
 							String temp = StringTransformUtil.bytesToHexString(ArrayUtils.subBytes(buffer, 0, len));
 							if (StringUtils.indexOfIgnoreCase(temp, "0D") >= 0) {
 								// 担心消息不停，要识别截至帧
-								sb.append(StringUtils.substring(temp, 0, StringUtils.indexOfIgnoreCase(temp, "0D")));
+								sb.append(
+										StringUtils.substring(temp, 0, StringUtils.indexOfIgnoreCase(temp, "0D") + 2));
 								// 获取执行队列
 								// CallBack call = queue.take();
 								// 放入消息队列中去
@@ -146,7 +185,7 @@ public class SerialConnecter {
 								// }
 								// 把剩下的消息缓存起来
 								sb = new StringBuffer();
-								sb.append(StringUtils.substring(temp, StringUtils.indexOf(temp, "0D") + 1));
+								sb.append(StringUtils.substring(temp, StringUtils.indexOfIgnoreCase(temp, "0D") + 2));
 							} else {
 								sb.append(StringTransformUtil.bytesToHexString(ArrayUtils.subBytes(buffer, 0, len)));
 							}
@@ -175,15 +214,13 @@ public class SerialConnecter {
 
 		public void run() {
 
-			while (notExist) {
+			while (notExit) {
 				try {
 					// poll取走BlockingQueue里排在首位的对象,取不到时返回null
 					CallBack call = queue.poll();
-					if (call != null && call.getCallBackState() == CallBackState.MESSAGE_READY) {
-						call.setCallBackState(CallBackState.MESSAGE_SENDING);
+					if (call != null) {
 						byte[] e = call.getOrderMessage();
 						this.out.write(e);
-						call.setCallBackState(CallBackState.MESSAGE_SENDED);
 						sendedQueue.offer(call);
 					}
 				} catch (IOException e) {
@@ -206,7 +243,7 @@ public class SerialConnecter {
 
 		public void run() {
 
-			while (notExist) {
+			while (notExit) {
 				while (!bq1.isEmpty()) {
 					if (bq2.size() == 0) {
 						// 说明命令已经执行完了，又收到下位机的命令，直接抛弃
@@ -221,33 +258,52 @@ public class SerialConnecter {
 						logger.error("没有相应的命令，直接作废收到的命令" + revOrder);
 					}
 
-					// 获取最后一个命令，用来判断是否当前是否是最后一个
-					// int length = bq2.size();
-					// 备份用
-					// final BlockingQueue<CallBack> bq3 = new
-					// ArrayBlockingQueue<CallBack>(100);
-					while (!bq2.isEmpty()) {
-						CallBack temp = bq2.poll();
-						if (temp == null) {
+					// 获取第一个命令，用来判断是否当前数组是否遍历一个循环
+					CallBack head = bq2.poll();
+					String sendedOrder = StringTransformUtil.bytesToHexString(head.getOrderMessage());
+					// 判断是否是匹配
+					if (StringTransformUtil.bytesToHexString(head.getOrderMessage()).substring(4, 9)
+							.equalsIgnoreCase(revOrder.substring(4, 9))) {
+
+						if (head instanceof CommandLineCallBack || head instanceof ComponentRepaintCallBack) {
+							// 提交异步处理
+							ExecutorServices.getExecutorServices().submit(new abstrackRunnable(head, revOrder));
+						} else {
+
+							retValue.put(StringTransformUtil.bytesToHexString(head.getOrderMessage()), revOrder);
+						}
+					} else {
+						// 移到队尾去
+						bq2.offer(head);
+					}
+
+					CallBack item = null;
+					while ((item = bq2.poll()) != head) {
+
+						if (item == null) {
 							break;
 						}
 						// 判断是否是匹配
-						if (StringTransformUtil.bytesToHexString(temp.getOrderMessage()).substring(4, 9)
-								.equalsIgnoreCase(revOrder.substring(4, 9))) {
+						sendedOrder = StringTransformUtil.bytesToHexString(item.getOrderMessage());
+						if (sendedOrder.substring(4, 9).equalsIgnoreCase(revOrder.substring(4, 9))) {
 
-							if (temp.getClass() == CommandLineCallBack.class
-									|| temp.getClass() == ComponentRepaintCallBack.class) {
+							if (item.getClass() == CommandLineCallBack.class
+									|| item.getClass() == ComponentRepaintCallBack.class) {
 								// 提交异步处理
-								ExecutorServices.getExecutorServices().submit(new abstrackRunnable(temp, revOrder));
+								ExecutorServices.getExecutorServices().submit(new abstrackRunnable(item, revOrder));
 							} else {
 
-								retValue.put(StringTransformUtil.bytesToHexString(temp.getOrderMessage()), revOrder);
+								retValue.put(StringTransformUtil.bytesToHexString(item.getOrderMessage()), revOrder);
 							}
 						} else {
-							// 移到新的队列中
-							bq2.offer(temp);
+							// 移到队尾去
+							bq2.offer(item);
 						}
 
+					}
+					// 说明遍历一遍没有找到相应的命令，建议丢弃
+					if (item == head) {
+						logger.error("没有找到匹配的命令，丢弃");
 					}
 					// 出对列，重新赋值
 					// bq2 = null;，这里可能会导致消息漏掉，删除

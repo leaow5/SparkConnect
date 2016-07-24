@@ -8,7 +8,7 @@ public class SynCallBack extends abstractCallBack {
 	private Date delayDate = null;
 	// 命令保存
 	private byte[] orderMessage;
-	private CallBackState callBackState = CallBackState.MESSAGE_NOTREADY;
+	// private CallBackState callBackState = CallBackState.MESSAGE_NOTREADY;
 
 	public void setOrderMessage(byte[] orderMessage) {
 		this.orderMessage = orderMessage;
@@ -23,17 +23,6 @@ public class SynCallBack extends abstractCallBack {
 	@Override
 	public byte[] getOrderMessage() {
 		return orderMessage;
-	}
-
-	@Override
-	public CallBackState getCallBackState() {
-
-		return callBackState;
-	}
-
-	@Override
-	public void setCallBackState(CallBackState arg) {
-		callBackState = arg;
 	}
 
 	@Override

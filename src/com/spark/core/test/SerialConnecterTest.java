@@ -2,7 +2,6 @@ package com.spark.core.test;
 
 import java.io.IOException;
 
-import com.spark.core.CallBackState;
 import com.spark.core.ComponentRepaintCallBack;
 import com.spark.core.SerialPortFactory;
 import com.spark.utils.StringTransformUtil;
@@ -21,7 +20,7 @@ public class SerialConnecterTest {
 		// 消息二
 		ComponentRepaintCallBack crcb = new ComponentRepaintCallBack(null);
 		crcb.setOrderMessage(StringTransformUtil.hexToBytes("55AA01080100F60D"));
-		crcb.setCallBackState(CallBackState.MESSAGE_READY);
+//		crcb.setCallBackState(CallBackState.MESSAGE_READY);
 		crcb.setPriority(0);
 		SerialPortFactory.sendMessage(crcb);
 		// ini

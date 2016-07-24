@@ -25,8 +25,7 @@ public final class SerialPortFactory {
 	 * @throws IOException
 	 * @throws Exception
 	 */
-	public static SerialPort getSerialPort(String portName)
-			throws IOException, Exception {
+	public static SerialPort getSerialPort(String portName) throws IOException, Exception {
 		if (StringUtils.isEmpty(portName)) {
 			return instance;
 		}
@@ -39,12 +38,10 @@ public final class SerialPortFactory {
 			synchronized (SerialPortFactory.class) {
 				if (instance == null) {
 					try {
-						CommPortIdentifier portId = CommPortIdentifier
-								.getPortIdentifier(portName);
+						CommPortIdentifier portId = CommPortIdentifier.getPortIdentifier(portName);
 
 						// 使用portId对象服务打开串口，并获得串口对象
-						instance = (SerialPort) portId
-								.open(ConstType.SERIAL_PORT_OWER, 2000);
+						instance = (SerialPort) portId.open(ConstType.SERIAL_PORT_OWER, 2000);
 					} catch (NoSuchPortException ex) {
 						throw new Exception(ex.toString());
 					} catch (PortInUseException ex) {
@@ -56,8 +53,7 @@ public final class SerialPortFactory {
 		return instance;
 	}
 
-	public static SerialConnecter getSerialConnecter()
-			throws IOException, Exception {
+	public static SerialConnecter getSerialConnecter() throws IOException, Exception {
 		if (connecter != null) {
 			return connecter;
 		}
@@ -73,6 +69,7 @@ public final class SerialPortFactory {
 
 	/**
 	 * 初始化上下文
+	 * 
 	 * @throws IOException
 	 * @throws Exception
 	 */
@@ -87,13 +84,36 @@ public final class SerialPortFactory {
 			}
 		}
 	}
+
 	/**
 	 * 发送消息.
+	 * 
 	 * @param arg
 	 * @return
 	 */
-	public static boolean  sendMessage(CallBack arg){
+	public static boolean sendMessage(CallBack arg) {
+		if (connecter == null) {
+			try {
+				initConnect();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
 		connecter.sendMessage(arg);
+		return true;
+	}
+
+	/**
+	 * 重置清空
+	 * 
+	 * @return
+	 */
+	public static boolean reset() {
+		connecter.reset();
 		return true;
 	}
 }

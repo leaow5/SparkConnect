@@ -12,7 +12,6 @@ public class CommandLineCallBack extends abstractCallBack implements CallBack {
 	private Date delayDate = null;
 	// 命令保存
 	private byte[] orderMessage;
-	private CallBackState callBackState = CallBackState.MESSAGE_NOTREADY;
 
 	public JComponent getComponent() {
 		return component;
@@ -39,17 +38,6 @@ public class CommandLineCallBack extends abstractCallBack implements CallBack {
 	@Override
 	public byte[] getOrderMessage() {
 		return orderMessage;
-	}
-
-	@Override
-	public CallBackState getCallBackState() {
-
-		return callBackState;
-	}
-
-	@Override
-	public void setCallBackState(CallBackState arg) {
-		callBackState = arg;
 	}
 
 	@Override

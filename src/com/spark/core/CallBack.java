@@ -19,21 +19,8 @@ public interface CallBack {
 	byte[] getOrderMessage();
 
 	/**
-	 * 获取消息状态
-	 * 
-	 * @return
-	 */
-	CallBackState getCallBackState();
-
-	/**
-	 * 设置消息状态
-	 * 
-	 * @return
-	 */
-	void setCallBackState(CallBackState arg);
-	
-	/**
 	 * 设置延迟时间.
+	 * 
 	 * @return Date
 	 */
 	Date getDelayTime();

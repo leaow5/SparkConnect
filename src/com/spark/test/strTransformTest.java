@@ -11,15 +11,15 @@ import com.spark.utils.StringTransformUtil;
 
 public class strTransformTest {
 
-	@Rule  
-	public ExpectedException expectedEx = ExpectedException.none();  
+	@Rule
+	public ExpectedException expectedEx = ExpectedException.none();
 
 	@Test
 	public void testAsciiStrToHex() {
 		int a = 48;
 		String b = StringTransformUtil.asciiStrToHexStr(a);
 		assertThat(b, equalTo("30"));
-		
+
 		StringTransformUtil.asciiStrToHexStr(null);
 	}
 
@@ -34,7 +34,7 @@ public class strTransformTest {
 		assertThat(f, equalTo("31"));
 	}
 
-	@Test 
+	@Test
 	public void testHexToAsciiString() throws Exception {
 		String a = "3C";
 		String b = StringTransformUtil.hexStrToAsciiStr(a);
@@ -43,10 +43,18 @@ public class strTransformTest {
 		a = "3c";
 		b = StringTransformUtil.hexStrToAsciiStr(a);
 		assertThat(b, equalTo("<"));
-		
-		expectedEx.expect(Exception.class);  
-		expectedEx.expectMessage("输入字符串必须是偶数个数！");  
+
+		expectedEx.expect(Exception.class);
+		expectedEx.expectMessage("输入字符串必须是偶数个数！");
 		a = "c";
 		b = StringTransformUtil.hexStrToAsciiStr(a);
+	}
+	
+	@Test
+	public void testHexToBytes() {
+		String a = "55AA01080100F60D";
+		byte[] arr = StringTransformUtil.hexToBytes(a);
+		String b = StringTransformUtil.bytesToHexString(arr);
+		assertThat(a, equalTo(b.toUpperCase()));
 	}
 }
