@@ -16,6 +16,15 @@ public final class SerialPortFactory {
 	private static volatile SerialConnecter connecter = null;
 
 	/**
+	 * 关闭连接.
+	 * @param portName
+	 */
+	public static void disConnect(String portName){
+		//关闭连接，可能先需要清理缓存数据
+		instance.close();
+//		instance.
+	}
+	/**
 	 * 这个方法用来设置和获取连接类的唯一入口. 分两种情况： 1）当传入参数的时候，初始化连接，如果当前连接对象非空，
 	 * 会先关闭当前连接，按照传入的端口连接 2）当传入空参数的时候，返回连接。
 	 * 
@@ -25,7 +34,7 @@ public final class SerialPortFactory {
 	 * @throws IOException
 	 * @throws Exception
 	 */
-	public static SerialPort getSerialPort(String portName) throws IOException, Exception {
+	public static SerialPort connect(String portName) throws IOException, Exception {
 		if (StringUtils.isEmpty(portName)) {
 			return instance;
 		}
@@ -77,7 +86,6 @@ public final class SerialPortFactory {
 		if (instance != null && connecter == null) {
 			synchronized (SerialPortFactory.class) {
 				if (instance != null && connecter == null) {
-
 					connecter = SerialConnecter.newConnect();
 					connecter.initConnect();
 				}
@@ -115,5 +123,10 @@ public final class SerialPortFactory {
 	public static boolean reset() {
 		connecter.reset();
 		return true;
+	}
+
+	public static String getSynCallBackReceived(CallBack cb) {
+
+		return connecter.getSynCallBackReceived(cb);
 	}
 }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- trace or OFF -->
+<!-- trace<debug<info<warn<error<fatal -->
 <configuration status="OFF">
 	<appenders>
 		<Console name="Console" target="SYSTEM_OUT">
@@ -27,16 +28,16 @@
 		</RollingFile>
 	</appenders>
 	<loggers>
-		<root level="info">
+		<!-- root level="info">
 			<appender-ref ref="Console" />
-		</root>
+		</root -->
 
 		<root level="debug">
 			<appender-ref ref="RollingFile" />
 		</root>
 
-		<root level="error">
+		<!--  root level="error">
 			<appender-ref ref="ErrorFile" />
-		</root>
+		</root-->
 	</loggers>
 </configuration>

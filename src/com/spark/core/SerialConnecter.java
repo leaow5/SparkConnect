@@ -32,14 +32,20 @@ public class SerialConnecter {
 		}
 		long startTime = System.currentTimeMillis();
 		if (retValue.get(StringTransformUtil.bytesToHexString(cb.getOrderMessage())) != null) {
-			return retValue.get(StringTransformUtil.bytesToHexString(cb.getOrderMessage()));
+			String value = retValue.get(StringTransformUtil.bytesToHexString(cb.getOrderMessage()));
+			retValue.put(StringTransformUtil.bytesToHexString(cb.getOrderMessage()), null);
+			return value;
 		} else {
 
-			while (System.currentTimeMillis() - startTime >= 2000) {
-				return retValue.get(StringTransformUtil.bytesToHexString(cb.getOrderMessage()));
+			while (System.currentTimeMillis() - startTime < 2000) {
+				if (retValue.get(StringTransformUtil.bytesToHexString(cb.getOrderMessage())) != null) {
+					String value = retValue.get(StringTransformUtil.bytesToHexString(cb.getOrderMessage()));
+					retValue.put(StringTransformUtil.bytesToHexString(cb.getOrderMessage()), null);
+					return value;
+				}
 			}
+			return null;
 		}
-		return null;
 	}
 
 	static Logger logger = LogManager.getLogger(SerialConnecter.class.getName());
@@ -56,7 +62,7 @@ public class SerialConnecter {
 	static private volatile BlockingQueue<String> receiveQueue = new ArrayBlockingQueue<String>(100);
 	// 先进先出队列:已经发出的命令
 	static private volatile BlockingQueue<CallBack> sendedQueue = new ArrayBlockingQueue<CallBack>(100);
-	static private Map<String, String> retValue = new HashMap<String, String>();
+	static private volatile Map<String, String> retValue = new HashMap<String, String>();
 	// 控制线程退出
 	private static volatile boolean notExit = true;
 	// 是否阻止发送队列继续加入，退出时控制
@@ -120,7 +126,7 @@ public class SerialConnecter {
 		if (sc.instance == null) {
 			synchronized (SerialPortFactory.class) {
 				if (sc.instance == null) {
-					sc.instance = SerialPortFactory.getSerialPort(null);
+					sc.instance = SerialPortFactory.connect(null);
 					// 清空
 					sc.sendQueue.clear();
 				}
@@ -220,6 +226,8 @@ public class SerialConnecter {
 					CallBack call = queue.poll();
 					if (call != null) {
 						byte[] e = call.getOrderMessage();
+						String temp = StringTransformUtil.bytesToHexString(e);
+						logger.info(temp);
 						this.out.write(e);
 						sendedQueue.offer(call);
 					}

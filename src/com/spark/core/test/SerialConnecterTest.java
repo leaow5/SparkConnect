@@ -9,7 +9,7 @@ import com.spark.utils.StringTransformUtil;
 public class SerialConnecterTest {
 
 	public static void main(String[] args) throws IOException, Exception {
-		SerialPortFactory.getSerialPort("COM1");
+		SerialPortFactory.connect("COM1");
 		SerialPortFactory.initConnect();
 		// 消息一
 		// ComponentRepaintCallBack crcb2 = new ComponentRepaintCallBack(null);
