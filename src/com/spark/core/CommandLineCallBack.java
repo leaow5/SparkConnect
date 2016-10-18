@@ -28,7 +28,10 @@ public class CommandLineCallBack extends abstractCallBack implements CallBack {
 	public CommandLineCallBack(JComponent arg) {
 		component = arg;
 	}
-
+	
+	public CommandLineCallBack() {
+		component = null;
+	}
 	@Override
 	public void execute(Object... objects) {
 		System.out.println(getOrderMessage());
