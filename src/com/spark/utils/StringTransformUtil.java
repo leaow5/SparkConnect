@@ -431,9 +431,9 @@ final public class StringTransformUtil {
 	private final static String mHexStr = "0123456789ABCDEF";
 
 	public static void main(String[] args) {
-		byte[] arr = hexToBytes("55AA01080100F60D");
-		System.out.println(arr);
-	}
+		String ss= "SC-5\\20161020\\ISO510280023\\20150309";
+		String[] s = ss.split("\\\\");
+		}
 
 	public static String simpleClassName(Object o) {
 		if (o == null) {

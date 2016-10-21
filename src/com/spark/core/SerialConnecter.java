@@ -183,7 +183,9 @@ public class SerialConnecter {
 								// CallBack call = queue.take();
 								// 放入消息队列中去
 								if (!receiveQueue.offer(sb.toString())) {
-									logger.error("消息队列已满，丢弃消息" + sb.toString());
+									logger.info("[命令]丢弃:" + sb.toString());
+								}else{
+									logger.info("[命令]接受:" + sb.toString());
 								}
 								// if (call.getCallBackState() ==
 								// CallBackState.MESSAGE_SENDED) {
@@ -227,7 +229,7 @@ public class SerialConnecter {
 					if (call != null) {
 						byte[] e = call.getOrderMessage();
 						String temp = StringTransformUtil.bytesToHexString(e);
-						logger.info(temp);
+						logger.info("[命令]发送" + temp);
 						this.out.write(e);
 						sendedQueue.offer(call);
 					}
@@ -270,8 +272,8 @@ public class SerialConnecter {
 					CallBack head = bq2.poll();
 					String sendedOrder = StringTransformUtil.bytesToHexString(head.getOrderMessage());
 					// 判断是否是匹配
-					if (StringTransformUtil.bytesToHexString(head.getOrderMessage()).substring(4, 9)
-							.equalsIgnoreCase(revOrder.substring(4, 9))) {
+					if (StringTransformUtil.bytesToHexString(head.getOrderMessage()).substring(4, 10)
+							.equalsIgnoreCase(revOrder.substring(4, 10))) {
 
 						if (head instanceof CommandLineCallBack || head instanceof ComponentRepaintCallBack) {
 							// 提交异步处理
