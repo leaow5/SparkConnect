@@ -183,9 +183,9 @@ public class SerialConnecter {
 								// CallBack call = queue.take();
 								// 放入消息队列中去
 								if (!receiveQueue.offer(sb.toString())) {
-									logger.info("[命令]丢弃:" + sb.toString());
-								}else{
-									logger.info("[命令]接受:" + sb.toString());
+									logger.info("接收器[命令]丢弃:" + sb.toString());
+								} else {
+									logger.info("接收器[命令]接受:" + sb.toString());
 								}
 								// if (call.getCallBackState() ==
 								// CallBackState.MESSAGE_SENDED) {
@@ -229,8 +229,9 @@ public class SerialConnecter {
 					if (call != null) {
 						byte[] e = call.getOrderMessage();
 						String temp = StringTransformUtil.bytesToHexString(e);
-						logger.info("[命令]发送" + temp);
+						logger.info("发送器[命令]发送:" + temp);
 						this.out.write(e);
+						logger.info("发送器[命令][放入已发命令集合]:" + temp);
 						sendedQueue.offer(call);
 					}
 				} catch (IOException e) {
@@ -243,76 +244,85 @@ public class SerialConnecter {
 
 	/** 首先放入队列，然后再发送消息 */
 	public static class SerialConsumer implements Runnable {
-		private volatile BlockingQueue<String> bq1;
-		private volatile BlockingQueue<CallBack> bq2;
+		private volatile BlockingQueue<String> msgList;
+		private volatile BlockingQueue<CallBack> optList;
 
 		public SerialConsumer(BlockingQueue<String> arg1, BlockingQueue<CallBack> arg2) {
-			this.bq1 = arg1;
-			this.bq2 = arg2;
+			this.msgList = arg1;
+			this.optList = arg2;
 		}
 
 		public void run() {
-
+			/**
+			 * 三重循环，第一个循环是用来控制退出的
+			 */
 			while (notExit) {
-				while (!bq1.isEmpty()) {
-					if (bq2.size() == 0) {
+				while (!msgList.isEmpty()) {
+					if (optList.size() == 0) {
 						// 说明命令已经执行完了，又收到下位机的命令，直接抛弃
-						bq1.clear();
+						msgList.clear();
 						continue;
 					}
 
 					// 开始匹配命令：第5位到第8位是一样的，就是匹配上了
-					String revOrder = bq1.poll();
+					String revOrder = msgList.poll();
 					// 如果命令为空，就直接作废掉，防止溢出
-					if (bq2.size() == 0) {
-						logger.error("没有相应的命令，直接作废收到的命令" + revOrder);
+					if (optList.size() == 0) {
+						logger.info("消费者[命令][没有操作者]，直接作废收到的命令:" + revOrder);
+						logger.error("消费者[命令][没有操作者]，直接作废收到的命令:" + revOrder);
+						
 					}
 
 					// 获取第一个命令，用来判断是否当前数组是否遍历一个循环
-					CallBack head = bq2.poll();
+					CallBack head = optList.poll();
 					String sendedOrder = StringTransformUtil.bytesToHexString(head.getOrderMessage());
 					// 判断是否是匹配
+					logger.info("消费者[命令][队首待验证]:" + sendedOrder);
 					if (StringTransformUtil.bytesToHexString(head.getOrderMessage()).substring(4, 10)
 							.equalsIgnoreCase(revOrder.substring(4, 10))) {
-
+						logger.info("消费者[命令][队首验证通过]:" + sendedOrder);
 						if (head instanceof CommandLineCallBack || head instanceof ComponentRepaintCallBack) {
 							// 提交异步处理
 							ExecutorServices.getExecutorServices().submit(new abstrackRunnable(head, revOrder));
 						} else {
-
+							logger.info("消费者[命令][队首验证不通过：命令不匹配]放回结果集:" + sendedOrder);
 							retValue.put(StringTransformUtil.bytesToHexString(head.getOrderMessage()), revOrder);
 						}
 					} else {
 						// 移到队尾去
-						bq2.offer(head);
+						logger.info("消费者[命令][队首验证不通过]移到队尾去:" + sendedOrder);
+						optList.offer(head);
 					}
 
 					CallBack item = null;
-					while ((item = bq2.poll()) != head) {
+					while ((item = optList.poll()) != head) {
 
 						if (item == null) {
 							break;
 						}
 						// 判断是否是匹配
 						sendedOrder = StringTransformUtil.bytesToHexString(item.getOrderMessage());
+						logger.info("消费者[命令][待验证]:" + sendedOrder);
 						if (sendedOrder.substring(4, 9).equalsIgnoreCase(revOrder.substring(4, 9))) {
-
+							logger.info("消费者[命令][验证通过]:" + sendedOrder);
 							if (item.getClass() == CommandLineCallBack.class
 									|| item.getClass() == ComponentRepaintCallBack.class) {
 								// 提交异步处理
 								ExecutorServices.getExecutorServices().submit(new abstrackRunnable(item, revOrder));
 							} else {
-
+								logger.info("消费者[命令][验证不通过：命令不匹配]放回结果集:" + sendedOrder);
 								retValue.put(StringTransformUtil.bytesToHexString(item.getOrderMessage()), revOrder);
 							}
 						} else {
 							// 移到队尾去
-							bq2.offer(item);
+							logger.info("消费者[命令][验证不通过]移到队尾去:" + sendedOrder);
+							optList.offer(item);
 						}
 
 					}
 					// 说明遍历一遍没有找到相应的命令，建议丢弃
 					if (item == head) {
+						logger.info("消费者[命令][丢弃]没有找到匹配的命令:" + sendedOrder);
 						logger.error("没有找到匹配的命令，丢弃");
 					}
 					// 出对列，重新赋值
