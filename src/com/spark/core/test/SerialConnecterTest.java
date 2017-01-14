@@ -10,7 +10,7 @@ public class SerialConnecterTest {
 
 	public static void main(String[] args) throws IOException, Exception {
 		SerialPortFactory.connect("COM1");
-		SerialPortFactory.initConnect();
+		SerialPortFactory.initConnect("COM1");
 		// 消息一
 		// ComponentRepaintCallBack crcb2 = new ComponentRepaintCallBack(null);
 		// crcb2.setOrderMessage(StringTransformUtil.hexToBytes("1234567"));

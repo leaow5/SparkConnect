@@ -3,27 +3,33 @@ package com.spark.core;
 import java.io.IOException;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import com.spark.utils.ConstType;
-
-import gnu.io.CommPortIdentifier;
-import gnu.io.NoSuchPortException;
-import gnu.io.PortInUseException;
 import gnu.io.SerialPort;
 
 public final class SerialPortFactory {
-	private static volatile SerialPort instance = null;
+	private static Logger logger = LogManager.getLogger(SerialPortFactory.class.getName());
+	// private static volatile SerialPort serialPort = null;
 	private static volatile SerialConnecter connecter = null;
 
 	/**
 	 * 关闭连接.
+	 * 
 	 * @param portName
 	 */
-	public static void disConnect(String portName){
-		//关闭连接，可能先需要清理缓存数据
-		instance.close();
-//		instance.
+	public static void disConnect(String portName) {
+		// 关闭连接，可能先需要清理缓存数据
+		final Boolean isForce = true;
+		logger.info("[info]:disconnect事件强制关闭");
+		connecter.close(isForce);
+		// serialPort.close();
+		// 清空
+		logger.info("[info]:disconnect对象清空");
+		connecter = null;
+		// serialPort=null;
 	}
+
 	/**
 	 * 这个方法用来设置和获取连接类的唯一入口. 分两种情况： 1）当传入参数的时候，初始化连接，如果当前连接对象非空，
 	 * 会先关闭当前连接，按照传入的端口连接 2）当传入空参数的时候，返回连接。
@@ -36,44 +42,10 @@ public final class SerialPortFactory {
 	 */
 	public static SerialPort connect(String portName) throws IOException, Exception {
 		if (StringUtils.isEmpty(portName)) {
-			return instance;
+			throw new Exception("端口号为空");
 		}
-		// 如果当前的连接有效的话，先关闭
-		if (instance != null && StringUtils.isNotEmpty(portName)) {
-			instance.close();
-		}
-		// 初始化连接
-		if (instance == null) {
-			synchronized (SerialPortFactory.class) {
-				if (instance == null) {
-					try {
-						CommPortIdentifier portId = CommPortIdentifier.getPortIdentifier(portName);
-
-						// 使用portId对象服务打开串口，并获得串口对象
-						instance = (SerialPort) portId.open(ConstType.SERIAL_PORT_OWER, 2000);
-					} catch (NoSuchPortException ex) {
-						throw new Exception(ex.toString());
-					} catch (PortInUseException ex) {
-						throw new Exception(ex.toString());
-					}
-				}
-			}
-		}
-		return instance;
-	}
-
-	public static SerialConnecter getSerialConnecter() throws IOException, Exception {
-		if (connecter != null) {
-			return connecter;
-		}
-
-		if (connecter == null) {
-			connecter = SerialConnecter.newConnect();
-			if (connecter != null) {
-				return connecter;
-			}
-		}
-		return connecter;
+		
+		return initConnect(portName).getSerialPort();
 	}
 
 	/**
@@ -82,15 +54,18 @@ public final class SerialPortFactory {
 	 * @throws IOException
 	 * @throws Exception
 	 */
-	public static void initConnect() throws IOException, Exception {
-		if (instance != null && connecter == null) {
+	public static SerialConnecter initConnect(String portName) throws IOException, Exception {
+		if (connecter == null) {
 			synchronized (SerialPortFactory.class) {
-				if (instance != null && connecter == null) {
-					connecter = SerialConnecter.newConnect();
+				if (connecter == null) {
+					connecter = SerialConnecter.newConnect(portName);
+					connecter.setNotExit(true);
 					connecter.initConnect();
 				}
 			}
 		}
+		return connecter;
+
 	}
 
 	/**
@@ -98,18 +73,11 @@ public final class SerialPortFactory {
 	 * 
 	 * @param arg
 	 * @return
+	 * @throws Exception
 	 */
-	public static boolean sendMessage(CallBack arg) {
+	public static boolean sendMessage(CallBack arg) throws Exception {
 		if (connecter == null) {
-			try {
-				initConnect();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			throw new Exception("连接未初始化。");
 		}
 		connecter.sendMessage(arg);
 		return true;

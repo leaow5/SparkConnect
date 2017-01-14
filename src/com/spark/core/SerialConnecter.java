@@ -14,8 +14,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.spark.utils.ArrayUtils;
+import com.spark.utils.ConstType;
 import com.spark.utils.StringTransformUtil;
 
+import gnu.io.CommPortIdentifier;
+import gnu.io.NoSuchPortException;
+import gnu.io.PortInUseException;
 import gnu.io.SerialPort;
 
 public class SerialConnecter {
@@ -49,9 +53,18 @@ public class SerialConnecter {
 	}
 
 	static Logger logger = LogManager.getLogger(SerialConnecter.class.getName());
-	private static SerialConnecter sc = null;
+	private static SerialConnecter serialConnecter = null;
 	// 连接实例
-	private volatile SerialPort instance;
+	private volatile SerialPort serialPort;
+
+	public SerialPort getSerialPort() {
+		return serialPort;
+	}
+
+	public void setSerialPort(SerialPort serialPort) {
+		this.serialPort = serialPort;
+	}
+
 	private Thread reader = null;
 	private Thread writer = null;
 	// 真正的消费者，只有这个线程才能消耗掉命令
@@ -65,6 +78,12 @@ public class SerialConnecter {
 	static private volatile Map<String, String> retValue = new HashMap<String, String>();
 	// 控制线程退出
 	private static volatile boolean notExit = true;
+
+	// 设置退出命令
+	public static void setNotExit(boolean notExit) {
+		SerialConnecter.notExit = notExit;
+	}
+
 	// 是否阻止发送队列继续加入，退出时控制
 	private static volatile boolean join = true;
 
@@ -77,7 +96,23 @@ public class SerialConnecter {
 	 */
 	public static boolean close(boolean isForce) {
 		if (isForce) {
-			notExit = true;
+			notExit = false;
+			// 强制关闭IO，让子线程抛出异常中止
+			logger.info("[info]:notifyOnDataAvailable");
+			serialConnecter.serialPort.notifyOnDataAvailable(false);
+
+			// logger.info("[info]:removeEventListener");
+			// sc.instance.removeEventListener();
+			try {
+				serialConnecter.serialPort.getInputStream().close();
+				serialConnecter.serialPort.getOutputStream().close();
+				serialConnecter.serialPort.close();
+				serialConnecter.serialPort=null;
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
 			return true;
 		} else {
 			join = false;
@@ -114,25 +149,52 @@ public class SerialConnecter {
 	}
 
 	// 初始化连接器
-	public static SerialConnecter newConnect() throws IOException, Exception {
-		if (sc == null) {
+	public static SerialConnecter newConnect(String portName) throws IOException, Exception {
+		if (serialConnecter == null) {
 			synchronized (SerialConnecter.class) {
-				if (sc == null) {
-					sc = new SerialConnecter();
+				if (serialConnecter == null) {
+					serialConnecter = new SerialConnecter();
 				}
 			}
 		}
 
-		if (sc.instance == null) {
+		if (serialConnecter.serialPort == null) {
 			synchronized (SerialPortFactory.class) {
-				if (sc.instance == null) {
-					sc.instance = SerialPortFactory.connect(null);
+				if (serialConnecter.serialPort == null) {
+					serialConnecter.serialPort = newSerialPort(portName);
 					// 清空
-					sc.sendQueue.clear();
+					serialConnecter.sendQueue.clear();
+					serialConnecter.sendedQueue.clear();
+					serialConnecter.receiveQueue.clear();
 				}
 			}
 		}
-		return sc;
+		return serialConnecter;
+	}
+
+	public static SerialPort newSerialPort(String portName) throws IOException, Exception {
+		if (StringUtils.isEmpty(portName)) {
+			throw new Exception("端口号为空");
+		}
+		SerialPort serialPort = null;
+		// 初始化连接
+		if (serialConnecter.serialPort == null) {
+			synchronized (SerialConnecter.class) {
+				if (serialConnecter.serialPort == null) {
+					try {
+						CommPortIdentifier portId = CommPortIdentifier.getPortIdentifier(portName);
+
+						// 使用portId对象服务打开串口，并获得串口对象
+						serialPort = (SerialPort) portId.open(ConstType.SERIAL_PORT_OWER, 2000);
+					} catch (NoSuchPortException ex) {
+						throw new Exception(ex.toString());
+					} catch (PortInUseException ex) {
+						throw new Exception(ex.toString());
+					}
+				}
+			}
+		}
+		return serialPort;
 	}
 
 	/**
@@ -142,15 +204,21 @@ public class SerialConnecter {
 	 */
 	public static void initConnect() throws IOException {
 		// 读命令
-		sc.reader = new Thread(new SerialReader(sc.instance.getInputStream(), sc.sendQueue));
+		serialConnecter.reader = new Thread(
+				new SerialReader(serialConnecter.serialPort.getInputStream(), serialConnecter.sendQueue));
+		serialConnecter.reader.setDaemon(true);
 		// 写命令
-		sc.writer = new Thread(new SerialWriter(sc.instance.getOutputStream(), sc.sendQueue));
+		serialConnecter.writer = new Thread(
+				new SerialWriter(serialConnecter.serialPort.getOutputStream(), serialConnecter.sendQueue));
+		serialConnecter.writer.setDaemon(true);
 		// 消费命令
-		sc.consumer = new Thread(new SerialConsumer(sc.receiveQueue, sc.sendedQueue));
+		serialConnecter.consumer = new Thread(
+				new SerialConsumer(serialConnecter.receiveQueue, serialConnecter.sendedQueue));
+		serialConnecter.consumer.setDaemon(true);
 		// 启动
-		sc.reader.start();
-		sc.writer.start();
-		sc.consumer.start();
+		serialConnecter.reader.start();
+		serialConnecter.writer.start();
+		serialConnecter.consumer.start();
 	}
 
 	/** 先取消息再取队列里面的元素调用 */
@@ -171,7 +239,8 @@ public class SerialConnecter {
 			StringBuffer sb = new StringBuffer();
 			while (notExit) {
 				try {
-					if ((len = this.in.read(buffer)) > -1) {
+					// 重点，利用短路，不然退不出去
+					if (notExit && (len = this.in.read(buffer)) > -1) {
 						if (len > 0) {
 
 							String temp = StringTransformUtil.bytesToHexString(ArrayUtils.subBytes(buffer, 0, len));
@@ -244,7 +313,9 @@ public class SerialConnecter {
 
 	/** 首先放入队列，然后再发送消息 */
 	public static class SerialConsumer implements Runnable {
+		// 消息队列
 		private volatile BlockingQueue<String> msgList;
+		// 命令队列
 		private volatile BlockingQueue<CallBack> optList;
 
 		public SerialConsumer(BlockingQueue<String> arg1, BlockingQueue<CallBack> arg2) {
@@ -258,6 +329,7 @@ public class SerialConnecter {
 			 */
 			while (notExit) {
 				while (!msgList.isEmpty()) {
+					// 如果命令队列为空，就清掉消息队列
 					if (optList.size() == 0) {
 						// 说明命令已经执行完了，又收到下位机的命令，直接抛弃
 						msgList.clear();
@@ -270,7 +342,7 @@ public class SerialConnecter {
 					if (optList.size() == 0) {
 						logger.info("消费者[命令][没有操作者]，直接作废收到的命令:" + revOrder);
 						logger.error("消费者[命令][没有操作者]，直接作废收到的命令:" + revOrder);
-						
+
 					}
 
 					// 获取第一个命令，用来判断是否当前数组是否遍历一个循环
@@ -284,6 +356,7 @@ public class SerialConnecter {
 						if (head instanceof CommandLineCallBack || head instanceof ComponentRepaintCallBack) {
 							// 提交异步处理
 							ExecutorServices.getExecutorServices().submit(new abstrackRunnable(head, revOrder));
+							continue;
 						} else {
 							logger.info("消费者[命令][队首验证不通过：命令不匹配]放回结果集:" + sendedOrder);
 							retValue.put(StringTransformUtil.bytesToHexString(head.getOrderMessage()), revOrder);
