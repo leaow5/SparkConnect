@@ -95,7 +95,7 @@ public class SerialConnecter {
 	 * @return
 	 */
 	public static boolean close(boolean isForce) {
-		if (isForce) {
+		if (isForce && serialConnecter.serialPort != null) {
 			notExit = false;
 			// 强制关闭IO，让子线程抛出异常中止
 			logger.info("[info]:notifyOnDataAvailable");
@@ -107,12 +107,11 @@ public class SerialConnecter {
 				serialConnecter.serialPort.getInputStream().close();
 				serialConnecter.serialPort.getOutputStream().close();
 				serialConnecter.serialPort.close();
-				serialConnecter.serialPort=null;
+				serialConnecter.serialPort = null;
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-
 			return true;
 		} else {
 			join = false;
