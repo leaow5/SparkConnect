@@ -296,8 +296,17 @@ public class SerialConnecter {
 					CallBack call = queue.poll();
 					if (call != null) {
 						byte[] e = call.getOrderMessage();
-						String temp = StringTransformUtil.bytesToHexString(e);
-						logger.info("发送器[命令]发送:" + temp);
+						boolean isOX = call.getCharset();
+						String temp = "";
+						if (isOX) {
+							temp = StringTransformUtil.bytesToHexString(e);
+							logger.info("发送器[命令:十六进制]发送:" + temp);
+						} else {
+							temp = StringTransformUtil.bytesToAsciiString(e);
+							logger.info("发送器[命令:ASCII]发送:" + temp);
+						}
+
+						
 						this.out.write(e);
 						logger.info("发送器[命令][放入已发命令集合]:" + temp);
 						sendedQueue.offer(call);

@@ -24,4 +24,7 @@ public interface CallBack {
 	 * @return Date
 	 */
 	Date getDelayTime();
+	
+	
+	boolean getCharset();
 }

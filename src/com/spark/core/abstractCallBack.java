@@ -20,7 +20,17 @@ public abstract class abstractCallBack implements CallBack, Comparable<abstractC
 	 * 权限.
 	 */
 	private int priority = 10;
-
+	// 默认16进制
+	private boolean isOX=true;
+	
+	@Override
+	public boolean getCharset() {
+		return isOX;
+	}
+	
+	public void setCharset(boolean isOX){
+		this.isOX= isOX;
+	}
 	@Override
 	public int compareTo(abstractCallBack o) {
 		// 复写此方法进行任务执行优先级排序

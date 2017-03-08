@@ -105,7 +105,7 @@ final public class StringTransformUtil {
 	 * @throws UnsupportedEncodingException
 	 */
 	static public byte[] asciiToBytes(String param) throws UnsupportedEncodingException {
-		return param.getBytes("US-param");
+		return param.getBytes("US-ASCII");
 	}
 
 	/**
@@ -374,6 +374,20 @@ final public class StringTransformUtil {
 	}
 
 	/**
+	 * ascii to String 
+	 * @param value String
+	 * @return String
+	 */
+	public static String asciiToString(String value)  
+	{  
+	    StringBuffer sbu = new StringBuffer();  
+	    String[] chars = value.split(",");  
+	    for (int i = 0; i < chars.length; i++) {  
+	        sbu.append((char) Integer.parseInt(chars[i]));  
+	    }  
+	    return sbu.toString();  
+	}  
+	/**
 	 * 检查16进制字符串是否有效
 	 * 
 	 * @param param
@@ -430,9 +444,10 @@ final public class StringTransformUtil {
 
 	private final static String mHexStr = "0123456789ABCDEF";
 
-	public static void main(String[] args) {
-		String ss= "SC-5\\20161020\\ISO510280023\\20150309";
-		String[] s = ss.split("\\\\");
+	public static void main(String[] args) throws UnsupportedEncodingException {
+		String ss= "fr?";
+		byte[] s = asciiToBytes(ss);
+		System.out.println(s);
 		}
 
 	public static String simpleClassName(Object o) {
