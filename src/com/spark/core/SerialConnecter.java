@@ -346,6 +346,7 @@ public class SerialConnecter {
 
 					// 开始匹配命令：第5位到第8位是一样的，就是匹配上了
 					String revOrder = msgList.poll();
+					logger.info("消费者[命令][队列取出消息]:" + revOrder);
 					// 如果命令为空，就直接作废掉，防止溢出
 					if (optList.size() == 0) {
 						logger.info("消费者[命令][没有操作者]，直接作废收到的命令:" + revOrder);
@@ -355,7 +356,12 @@ public class SerialConnecter {
 
 					// 获取第一个命令，用来判断是否当前数组是否遍历一个循环
 					CallBack head = optList.poll();
+					CallBack firstCommandLineCallBack = null;
 					String sendedOrder = StringTransformUtil.bytesToHexString(head.getOrderMessage());
+					//取第一个CommandLineCallBack
+					if(head instanceof CommandLineCallBack && firstCommandLineCallBack==null){
+						firstCommandLineCallBack = head;
+					}
 					// 判断是否是匹配
 					logger.info("消费者[命令][队首待验证]:" + sendedOrder);
 					if (StringTransformUtil.bytesToHexString(head.getOrderMessage()).substring(4, 10)
@@ -364,6 +370,7 @@ public class SerialConnecter {
 						if (head instanceof CommandLineCallBack || head instanceof ComponentRepaintCallBack) {
 							// 提交异步处理
 							ExecutorServices.getExecutorServices().submit(new abstrackRunnable(head, revOrder));
+							firstCommandLineCallBack = null;
 							continue;
 						} else {
 							logger.info("消费者[命令][队首验证不通过：命令不匹配]放回结果集:" + sendedOrder);
@@ -376,11 +383,18 @@ public class SerialConnecter {
 					}
 
 					CallBack item = null;
+					
 					while ((item = optList.poll()) != head) {
-
+						
 						if (item == null) {
 							break;
 						}
+						
+						if(item instanceof CommandLineCallBack && firstCommandLineCallBack==null){
+							firstCommandLineCallBack = item;
+						}
+						
+						
 						// 判断是否是匹配
 						sendedOrder = StringTransformUtil.bytesToHexString(item.getOrderMessage());
 						logger.info("消费者[命令][待验证]:" + sendedOrder);
@@ -390,6 +404,7 @@ public class SerialConnecter {
 									|| item.getClass() == ComponentRepaintCallBack.class) {
 								// 提交异步处理
 								ExecutorServices.getExecutorServices().submit(new abstrackRunnable(item, revOrder));
+								firstCommandLineCallBack = null;
 							} else {
 								logger.info("消费者[命令][验证不通过：命令不匹配]放回结果集:" + sendedOrder);
 								retValue.put(StringTransformUtil.bytesToHexString(item.getOrderMessage()), revOrder);
@@ -403,7 +418,14 @@ public class SerialConnecter {
 					}
 					// 说明遍历一遍没有找到相应的命令，建议丢弃
 					if (item == head) {
-						logger.info("消费者[命令][丢弃]没有找到匹配的命令:" + sendedOrder);
+						if (firstCommandLineCallBack != null) {
+							logger.info("消费者[命令][自定义命令]firstCommandLineCallBack:不为空,接受命令为:" + revOrder);
+							logger.info("消费者[命令][自定义命令]firstCommandLineCallBack:不为空,firstCommandLineCallBack本身命令为:" + StringTransformUtil.bytesToHexString(firstCommandLineCallBack.getOrderMessage()));
+							optList.remove(firstCommandLineCallBack);
+							ExecutorServices.getExecutorServices()
+									.submit(new abstrackRunnable(firstCommandLineCallBack, revOrder));
+						} // 需求修改，如果没有匹配的就找第一个CommandLineCallBack 消耗掉
+						logger.info("消费者[命令][丢弃]没有找到匹配的命令:" + revOrder);
 						logger.error("没有找到匹配的命令，丢弃");
 					}
 					// 出对列，重新赋值
