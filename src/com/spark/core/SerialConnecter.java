@@ -31,7 +31,7 @@ public class SerialConnecter {
 	}
 
 	public String getSynCallBackReceived(CallBack cb) {
-		if (cb.getClass() != SynCallBack.class) {
+		if (cb instanceof SynCallBack) {
 			return null;
 		}
 		long startTime = System.currentTimeMillis();
@@ -432,12 +432,13 @@ public class SerialConnecter {
 							}
 
 							if (sendedOrder.substring(4, 10).equalsIgnoreCase(revOrder.substring(4, 10))) {
-								logger.info("消费者[命令][验证通过]:" + sendedOrder);
-								if (item.getClass() == CommandLineCallBack.class
-										|| item.getClass() == ComponentRepaintCallBack.class) {
+								if (item instanceof CommandLineCallBack
+										|| item instanceof ComponentRepaintCallBack) {
+									logger.info("消费者[命令][验证通过]:" + sendedOrder);
 									// 提交异步处理
 									ExecutorServices.getExecutorServices().submit(new abstrackRunnable(item, revOrder));
 									firstCommandLineCallBack = null;
+									continue;
 								} else {
 									logger.info("消费者[命令][验证不通过：命令不匹配]放回结果集:" + sendedOrder);
 									retValue.put(StringTransformUtil.bytesToHexString(item.getOrderMessage()),
@@ -463,7 +464,7 @@ public class SerialConnecter {
 							} // 需求修改，如果没有匹配的就找第一个CommandLineCallBack 消耗掉
 							else {
 								logger.info("消费者[命令][丢弃]没有找到匹配的命令1:" + revOrder);
-								logger.error("没有找到匹配的命令，丢弃1");
+								logger.error("没有找到匹配的命令，丢弃1"+ revOrder);
 							}
 						} else {
 							logger.info("消费者[命令][丢弃]没有找到匹配的命令2:" + revOrder);
