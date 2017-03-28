@@ -70,7 +70,7 @@ public class SerialConnecter {
 	// 真正的消费者，只有这个线程才能消耗掉命令
 	private Thread consumer = null;
 	// 优先级队列：准备发出的命令，因为有优先级，所以实际是动态的
-	static private volatile PriorityBlockingQueue<CallBack> sendQueue = new PriorityBlockingQueue<CallBack>();
+	static private volatile PriorityBlockingQueue<CallBack> preSendQueue = new PriorityBlockingQueue<CallBack>();
 	// 先进先出队列:已收到的命令
 	static private volatile BlockingQueue<String> receiveQueue = new ArrayBlockingQueue<String>(100);
 	// 先进先出队列:已经发出的命令
@@ -128,7 +128,7 @@ public class SerialConnecter {
 	 * @return boolean
 	 */
 	public boolean reset() {
-		sendQueue.clear();
+		preSendQueue.clear();
 		receiveQueue.clear();
 		sendedQueue.clear();
 		retValue.clear();
@@ -143,7 +143,7 @@ public class SerialConnecter {
 	 * @return boolean
 	 */
 	public boolean sendMessage(CallBack arg) {
-		sendQueue.offer(arg);
+		preSendQueue.offer(arg);
 		return true;
 	}
 
@@ -162,9 +162,9 @@ public class SerialConnecter {
 				if (serialConnecter.serialPort == null) {
 					serialConnecter.serialPort = newSerialPort(portName);
 					// 清空
-					serialConnecter.sendQueue.clear();
-					serialConnecter.sendedQueue.clear();
-					serialConnecter.receiveQueue.clear();
+					SerialConnecter.preSendQueue.clear();
+					SerialConnecter.sendedQueue.clear();
+					SerialConnecter.receiveQueue.clear();
 				}
 			}
 		}
@@ -203,16 +203,13 @@ public class SerialConnecter {
 	 */
 	public static void initConnect() throws IOException {
 		// 读命令
-		serialConnecter.reader = new Thread(
-				new SerialReader(serialConnecter.serialPort.getInputStream(), serialConnecter.sendQueue));
+		serialConnecter.reader = new Thread(new SerialReader(serialConnecter.serialPort.getInputStream()));
 		serialConnecter.reader.setDaemon(true);
 		// 写命令
-		serialConnecter.writer = new Thread(
-				new SerialWriter(serialConnecter.serialPort.getOutputStream(), serialConnecter.sendQueue));
+		serialConnecter.writer = new Thread(new SerialWriter(serialConnecter.serialPort.getOutputStream()));
 		serialConnecter.writer.setDaemon(true);
 		// 消费命令
-		serialConnecter.consumer = new Thread(
-				new SerialConsumer(serialConnecter.receiveQueue, serialConnecter.sendedQueue));
+		serialConnecter.consumer = new Thread(new SerialConsumer());
 		serialConnecter.consumer.setDaemon(true);
 		// 启动
 		serialConnecter.reader.start();
@@ -223,13 +220,9 @@ public class SerialConnecter {
 	/** 先取消息再取队列里面的元素调用 */
 	public static class SerialReader implements Runnable {
 		InputStream in;
-		// 优先级队列
-		// private PriorityBlockingQueue<CallBack> queue = new
-		// PriorityBlockingQueue<CallBack>();
 
-		public SerialReader(InputStream in, PriorityBlockingQueue<CallBack> arg2) {
+		public SerialReader(InputStream in) {
 			this.in = in;
-			// queue = arg2;
 		}
 
 		public void run() {
@@ -275,11 +268,9 @@ public class SerialConnecter {
 	public static class SerialWriter implements Runnable {
 		OutputStream out;
 		// 优先级队列
-		private PriorityBlockingQueue<CallBack> queue = new PriorityBlockingQueue<CallBack>();
 
-		public SerialWriter(OutputStream out, PriorityBlockingQueue<CallBack> arg2) {
+		public SerialWriter(OutputStream out) {
 			this.out = out;
-			queue = arg2;
 		}
 
 		public void run() {
@@ -287,7 +278,7 @@ public class SerialConnecter {
 			while (notExit) {
 				try {
 					// poll取走BlockingQueue里排在首位的对象,取不到时返回null
-					CallBack call = queue.poll();
+					CallBack call = preSendQueue.poll();
 					if (call != null) {
 						byte[] e = call.getOrderMessage();
 						boolean isOX = call.getCharset();
@@ -314,20 +305,31 @@ public class SerialConnecter {
 
 	/** 首先放入队列，然后再发送消息 */
 	public static class SerialConsumer implements Runnable {
-		// 消息队列
-		private volatile BlockingQueue<String> msgList;
-		// 命令队列
-		private volatile BlockingQueue<CallBack> optList;
 
-		public SerialConsumer(BlockingQueue<String> arg1, BlockingQueue<CallBack> arg2) {
-			this.msgList = arg1;
-			this.optList = arg2;
+		public SerialConsumer() {
 		}
 
 		private CommandLineCallBack findFirstCommandLine(BlockingQueue<CallBack> optList) {
+			// 退出队首有2个条件，A是null，B是回到队首
+			// 确认队首
+			CallBack start = optList.peek();
 			CallBack temp = null;
+			// 退出标记
+			boolean flag = false;
 			while ((temp = optList.poll()) != null) {
-
+				logger.info("判断是否是无限循环:" + optList.size());
+				// 如果再次相遇就退出
+				if (start == temp) {
+					if (flag) {
+						logger.info("第二次碰撞，退出");
+						// 碰撞后要塞回去
+						optList.offer(temp);
+						break;
+					} else {
+						logger.info("第一次碰撞");
+						flag = true;
+					}
+				}
 				if (temp instanceof CommandLineCallBack) {
 					return (CommandLineCallBack) temp;
 				} else {
@@ -343,27 +345,27 @@ public class SerialConnecter {
 			 */
 			try {
 				while (notExit) {
-					while (!msgList.isEmpty()) {
+					while (!receiveQueue.isEmpty()) {
 						// 如果命令队列为空，就清掉消息队列
-						if (optList.size() == 0) {
+						if (sendedQueue.size() == 0) {
 							// 说明命令已经执行完了，又收到下位机的命令，直接抛弃
-							msgList.clear();
+							receiveQueue.clear();
 							continue;
 						}
 
 						// 开始匹配命令：第5位到第8位是一样的，就是匹配上了
 						// !注意： 这个是接受到的命令！！
-						String revOrder = msgList.poll();
+						String revOrder = receiveQueue.poll();
 						logger.info("消费者[命令][队列取出消息]:" + revOrder);
 						// 如果命令为空，就直接作废掉，防止溢出
-						if (optList.size() == 0) {
+						if (sendedQueue.size() == 0) {
 							logger.info("消费者[命令][没有操作者]，直接作废收到的命令:" + revOrder);
 							logger.error("消费者[命令][没有操作者]，直接作废收到的命令:" + revOrder);
 
 						}
 
 						// 获取第一个命令，用来判断是否当前数组是否遍历一个循环
-						CallBack head = optList.poll();
+						CallBack head = sendedQueue.poll();
 						// 这个命令的用途是：如果遍历一遍没有匹配的消息，就调用这个命令去实现
 						CallBack firstCommandLineCallBack = null;
 						String sendedOrder = StringTransformUtil.bytesToHexString(head.getOrderMessage());
@@ -372,13 +374,14 @@ public class SerialConnecter {
 							firstCommandLineCallBack = head;
 						}
 						// 判断是否是匹配
-						logger.info("消费者[命令][队首待验证]:" + sendedOrder);
+						logger.info("消费者[命令][队首待验证]:第一条命令:" + sendedOrder);
 						// 自定义事件，优化路径，直接找第一个发送的自定义命令相应
 						if (revOrder.length() < 10) {
+							logger.info("消费者[命令][进入自定义路线]:" + revOrder);
 							if (firstCommandLineCallBack == null) {
-								CallBack tem = findFirstCommandLine(optList);
+								CallBack tem = findFirstCommandLine(sendedQueue);
 								if (tem == null) {
-									logger.info("消费者[命令][没有找到指定的命令]:" + revOrder);
+									logger.info("消费者[命令][自定义路线,没有找到指定的命令]:" + revOrder);
 								} else {
 									ExecutorServices.getExecutorServices().submit(new abstrackRunnable(tem, revOrder));
 									continue;
@@ -391,28 +394,31 @@ public class SerialConnecter {
 							}
 							continue;
 						}
+						// 自定义事件 结束
 						// 开始一般的 处理
 						if (revOrder.length() >= 10 && sendedOrder.length() >= 10
 								&& sendedOrder.substring(4, 10).equalsIgnoreCase(revOrder.substring(4, 10))) {
-							logger.info("消费者[命令][队首验证通过]:" + sendedOrder);
+							logger.info("消费者[命令][队首验证通过]首次:" + sendedOrder);
 							if (head instanceof CommandLineCallBack || head instanceof ComponentRepaintCallBack) {
 								// 提交异步处理
 								ExecutorServices.getExecutorServices().submit(new abstrackRunnable(head, revOrder));
 								firstCommandLineCallBack = null;
 								continue;
 							} else {
-								logger.info("消费者[命令][队首验证不通过：命令不匹配]放回结果集:" + sendedOrder);
+								// 这是为以后直接同步命令准备
+								logger.info("消费者[命令][队首验证不通过：命令不匹配]放到同步结果集合:" + sendedOrder);
 								retValue.put(StringTransformUtil.bytesToHexString(head.getOrderMessage()), revOrder);
 							}
 						} else {
 							// 移到队尾去
+							logger.info("消费者[命令][队首验证不通过]验证的命令:" + sendedOrder + "，收到的命令是：" + revOrder);
 							logger.info("消费者[命令][队首验证不通过]移到队尾去:" + sendedOrder);
-							optList.offer(head);
+							sendedQueue.offer(head);
 						}
 
 						CallBack item = null;
-
-						while ((item = optList.poll()) != head) {
+						// 最内层while
+						while ((item = sendedQueue.poll()) != head) {
 
 							if (item == null) {
 								break;
@@ -425,31 +431,38 @@ public class SerialConnecter {
 							// 判断是否是匹配
 							sendedOrder = StringTransformUtil.bytesToHexString(item.getOrderMessage());
 							logger.info("消费者[命令][待验证]:" + sendedOrder);
-							// 优化校验
+							// 优化校验 直接取下一条命令
 							if (revOrder.length() >= 10 && sendedOrder.length() < 10) {
-								optList.offer(item);
+								sendedQueue.offer(item);
 								continue;
 							}
 
 							if (sendedOrder.substring(4, 10).equalsIgnoreCase(revOrder.substring(4, 10))) {
-								if (item instanceof CommandLineCallBack
-										|| item instanceof ComponentRepaintCallBack) {
+								if (item instanceof CommandLineCallBack || item instanceof ComponentRepaintCallBack) {
 									logger.info("消费者[命令][验证通过]:" + sendedOrder);
 									// 提交异步处理
 									ExecutorServices.getExecutorServices().submit(new abstrackRunnable(item, revOrder));
 									firstCommandLineCallBack = null;
-									continue;
+									item = null;
+									break;
 								} else {
-									logger.info("消费者[命令][验证不通过：命令不匹配]放回结果集:" + sendedOrder);
+									// 这是为以后直接同步命令准备
+									logger.info("消费者[命令][队首验证不通过]验证的命令:" + sendedOrder + "，收到的命令是：" + revOrder);
+									logger.info("消费者[命令][验证不通过：命令不匹配]放到同步结果集合:" + sendedOrder);
 									retValue.put(StringTransformUtil.bytesToHexString(item.getOrderMessage()),
 											revOrder);
 								}
 							} else {
 								// 移到队尾去
 								logger.info("消费者[命令][验证不通过]移到队尾去:" + sendedOrder);
-								optList.offer(item);
+								sendedQueue.offer(item);
 							}
 
+						}
+						// 最内层while结束
+						// 优化，等于null 说明已经被消耗了
+						if (item == null) {
+							continue;
 						}
 						// 说明遍历一遍没有找到相应的命令，建议丢弃
 						if (item == head) {
@@ -458,13 +471,14 @@ public class SerialConnecter {
 								logger.info("消费者[命令][自定义命令]firstCommandLineCallBack:不为空,firstCommandLineCallBack本身命令为:"
 										+ StringTransformUtil
 												.bytesToHexString(firstCommandLineCallBack.getOrderMessage()));
-								optList.remove(firstCommandLineCallBack);
+								sendedQueue.remove(firstCommandLineCallBack);
+								logger.info("消费者[命令][验证通过]:自定义命令,接受到的命令：" + revOrder);
 								ExecutorServices.getExecutorServices()
 										.submit(new abstrackRunnable(firstCommandLineCallBack, revOrder));
 							} // 需求修改，如果没有匹配的就找第一个CommandLineCallBack 消耗掉
 							else {
 								logger.info("消费者[命令][丢弃]没有找到匹配的命令1:" + revOrder);
-								logger.error("没有找到匹配的命令，丢弃1"+ revOrder);
+								logger.error("没有找到匹配的命令，丢弃1" + revOrder);
 							}
 						} else {
 							logger.info("消费者[命令][丢弃]没有找到匹配的命令2:" + revOrder);
