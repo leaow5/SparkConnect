@@ -2,6 +2,8 @@ package com.spark.utils;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 final public class StringTransformUtil {
 	private StringTransformUtil() {
@@ -444,11 +446,11 @@ final public class StringTransformUtil {
 
 	private final static String mHexStr = "0123456789ABCDEF";
 
-	public static void main(String[] args) throws UnsupportedEncodingException {
-		String ss= "fr?";
-		byte[] s = asciiToBytes(ss);
-		System.out.println(s);
-		}
+//	public static void main(String[] args) throws UnsupportedEncodingException {
+//		String ss= "fr?";
+//		byte[] s = asciiToBytes(ss);
+//		System.out.println(s);
+//		}
 
 	public static String simpleClassName(Object o) {
 		if (o == null) {
@@ -479,4 +481,18 @@ final public class StringTransformUtil {
 		}
 		return arg;
 	}
+	
+	 
+    public static String replaceBlank(String str) {  
+        String dest = "";  
+        if (str!=null) {  
+            Pattern p = Pattern.compile("\\s*|\t|\r|\n");  
+            Matcher m = p.matcher(str);  
+            dest = m.replaceAll("");  
+        }  
+        return dest;  
+    }  
+    public static void main(String[] args) {  
+        System.out.println(replaceBlank(" just  do it! \n \r"));  
+    }  
 }
