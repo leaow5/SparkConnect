@@ -25,6 +25,13 @@ public interface CallBack {
 	 */
 	Date getDelayTime();
 	
-	
+	/**
+	 * 字符集.
+	 * @return boolean
+	 */
 	boolean getCharset();
+	/**
+	 * uuid.
+	 */
+	String getUuid();
 }

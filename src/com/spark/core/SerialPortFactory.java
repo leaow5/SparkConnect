@@ -94,7 +94,7 @@ public final class SerialPortFactory {
 		return true;
 	}
 
-	public static String getSynCallBackReceived(CallBack cb) {
+	public static ReceiveMessage getSynCallBackReceived(CallBack cb) {
 
 		return connecter.getSynCallBackReceived(cb);
 	}

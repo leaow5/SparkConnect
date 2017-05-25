@@ -2,6 +2,7 @@ package com.spark.utils;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -376,19 +377,21 @@ final public class StringTransformUtil {
 	}
 
 	/**
-	 * ascii to String 
-	 * @param value String
+	 * ascii to String
+	 * 
+	 * @param value
+	 *            String
 	 * @return String
 	 */
-	public static String asciiToString(String value)  
-	{  
-	    StringBuffer sbu = new StringBuffer();  
-	    String[] chars = value.split(",");  
-	    for (int i = 0; i < chars.length; i++) {  
-	        sbu.append((char) Integer.parseInt(chars[i]));  
-	    }  
-	    return sbu.toString();  
-	}  
+	public static String asciiToString(String value) {
+		StringBuffer sbu = new StringBuffer();
+		String[] chars = value.split(",");
+		for (int i = 0; i < chars.length; i++) {
+			sbu.append((char) Integer.parseInt(chars[i]));
+		}
+		return sbu.toString();
+	}
+
 	/**
 	 * 检查16进制字符串是否有效
 	 * 
@@ -446,11 +449,12 @@ final public class StringTransformUtil {
 
 	private final static String mHexStr = "0123456789ABCDEF";
 
-//	public static void main(String[] args) throws UnsupportedEncodingException {
-//		String ss= "fr?";
-//		byte[] s = asciiToBytes(ss);
-//		System.out.println(s);
-//		}
+	// public static void main(String[] args) throws
+	// UnsupportedEncodingException {
+	// String ss= "fr?";
+	// byte[] s = asciiToBytes(ss);
+	// System.out.println(s);
+	// }
 
 	public static String simpleClassName(Object o) {
 		if (o == null) {
@@ -481,18 +485,33 @@ final public class StringTransformUtil {
 		}
 		return arg;
 	}
-	
-	 
-    public static String replaceBlank(String str) {  
-        String dest = "";  
-        if (str!=null) {  
-            Pattern p = Pattern.compile("\\s*|\t|\r|\n");  
-            Matcher m = p.matcher(str);  
-            dest = m.replaceAll("");  
-        }  
-        return dest;  
-    }  
-    public static void main(String[] args) {  
-        System.out.println(replaceBlank(" just  do it! \n \r"));  
-    }  
+
+	public static String replaceBlank(String str) {
+		String dest = "";
+		if (str != null) {
+			Pattern p = Pattern.compile("\\s*|\t|\r|\n");
+			Matcher m = p.matcher(str);
+			dest = m.replaceAll("");
+		}
+		return dest;
+	}
+
+	public static void main(String[] args) {
+		System.out.println(replaceBlank(" just  do it! \n \r"));
+	}
+
+	/**
+	 * 返回32位UUID字符串.
+	 * 
+	 * @return String
+	 */
+	public static String getUUID() {
+		/*
+		 * UUID uuid = UUID.randomUUID(); String str = uuid.toString(); //
+		 * 去掉"-"符号 String temp = str.substring(0, 8) + str.substring(9, 13) +
+		 * str.substring(14, 18) + str.substring(19, 23) + str.substring(24);
+		 * return temp;
+		 */
+		return UUID.randomUUID().toString().replace("-", "");
+	}
 }

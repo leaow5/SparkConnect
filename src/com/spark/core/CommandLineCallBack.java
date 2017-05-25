@@ -35,7 +35,6 @@ public class CommandLineCallBack extends abstractCallBack implements CallBack {
 	@Override
 	public void execute(Object... objects) {
 		System.out.println(getOrderMessage());
-
 	}
 
 	@Override

@@ -3,7 +3,7 @@ package com.spark.core;
 public class abstrackRunnable implements Runnable {
 
 	private CallBack cb;
-	private String reOrder;
+	private ReceiveMessage reOrder;
 
 	/**
 	 * 带参数函数.
@@ -11,9 +11,9 @@ public class abstrackRunnable implements Runnable {
 	 * @param arg1
 	 *            CallBack
 	 * @param arg2
-	 *            String
+	 *            ReceiveMessage
 	 */
-	public abstrackRunnable(CallBack arg1, String arg2) {
+	public abstrackRunnable(CallBack arg1, ReceiveMessage arg2) {
 		cb = arg1;
 		reOrder = arg2;
 	}
