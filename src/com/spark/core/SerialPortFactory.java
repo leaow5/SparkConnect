@@ -75,7 +75,7 @@ public final class SerialPortFactory {
 	 * @return
 	 * @throws Exception
 	 */
-	public static boolean sendMessage(CallBack arg) throws Exception {
+	public static boolean sendMessage(abstractCallBack arg) throws Exception {
 		logger.info("获取连接！");
 		if (connecter == null) {
 			throw new Exception("连接未初始化。");

@@ -2,7 +2,7 @@ package com.spark.core;
 
 import com.spark.utils.StringTransformUtil;
 
-public abstract class abstractCallBack implements CallBack, Comparable<abstractCallBack> {
+public abstract class abstractCallBack implements CallBack, Comparable<abstractCallBack>, Cloneable {
 
 	/**
 	 * 默认构造函数.
@@ -110,4 +110,16 @@ public abstract class abstractCallBack implements CallBack, Comparable<abstractC
 			}
 		}
 	}
+	
+	@Override
+	public Object clone() {
+		abstractCallBack o = null;
+		try {
+			o = (abstractCallBack) super.clone();
+		} catch (CloneNotSupportedException e) {
+			e.printStackTrace();
+		}
+		return o;
+	}
+
 }
