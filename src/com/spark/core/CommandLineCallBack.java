@@ -4,9 +4,12 @@ import java.util.Date;
 
 import javax.swing.JComponent;
 
+import com.alibaba.fastjson.annotation.JSONField;
+
 public class CommandLineCallBack extends abstractCallBack implements CallBack {
 
 	// 组件回调用途
+	@JSONField(serialize = false)
 	private JComponent component;
 
 	private Date delayDate = null;
