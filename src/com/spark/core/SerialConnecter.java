@@ -365,6 +365,10 @@ public class SerialConnecter {
 			logger.info("循环前打印:" + JSON.toJSONString(sendedQueue));
 			boolean flag = false;
 			while ((temp = sendedQueue.poll()) != null) {
+				
+				if ((temp instanceof CommandLineCallBack) && commandLine == null) {
+					commandLine = temp;
+				}
 				// 如果再次相遇就退出
 				if (start.getUuid().equals(temp.getUuid())) {
 					if (flag) {
@@ -378,22 +382,24 @@ public class SerialConnecter {
 						flag = true;
 					}
 				}
-				if ((temp instanceof CommandLineCallBack) && commandLine == null) {
-					commandLine = temp;
-				}
+				
 				sendedOrder = StringTransformUtil.bytesToHexString(temp.getOrderMessage());
 				//如果小于10直接跳过，不能匹配的上
 				if(sendedOrder.length()<10){
 					continue;
 				}
 				if (sendedOrder.substring(4, 10).equalsIgnoreCase(revOrder.getMessage().substring(4, 10))) {
+					logger.info("[消费者][已发命令][匹配成功]:" + JSON.toJSONString(temp));
 					return temp;
 				} else {
+					// 要塞回去
 					sendedQueue.offer(temp);
 					temp = null;
 				}
 			}
+			logger.info("循环后打印:" + JSON.toJSONString(sendedQueue));
 			if (commandLine != null && flag && temp == null) {
+				logger.info("[消费者][已发命令][无匹配]:" + JSON.toJSONString(commandLine));
 				sendedQueue.remove(commandLine);
 				return commandLine;
 			} else if (temp != null) {
