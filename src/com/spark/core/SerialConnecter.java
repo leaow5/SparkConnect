@@ -386,6 +386,8 @@ public class SerialConnecter {
 				sendedOrder = StringTransformUtil.bytesToHexString(temp.getOrderMessage());
 				//如果小于10直接跳过，不能匹配的上
 				if(sendedOrder.length()<10){
+					// 要塞回去
+					sendedQueue.offer(temp);
 					continue;
 				}
 				if (sendedOrder.substring(4, 10).equalsIgnoreCase(revOrder.getMessage().substring(4, 10))) {
