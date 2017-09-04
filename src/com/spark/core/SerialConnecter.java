@@ -323,27 +323,29 @@ public class SerialConnecter {
 			abstractCallBack start = sendedQueue.peek();
 			abstractCallBack temp = null;
 			// 退出标记
-			logger.info("循环前打印:" + JSON.toJSONString(sendedQueue));
+			logger.info("[CONSUMER][findFirstCommandLine]ECHO BEFORE:" + JSON.toJSONString(sendedQueue));
 			boolean flag = false;
 			while ((temp = sendedQueue.poll()) != null) {
 				// 如果再次相遇就退出
 				if (start.getUuid().equals(temp.getUuid())) {
 					if (flag) {
-						logger.info("第二次碰撞，退出");
+						logger.info("[CONSUMER][findFirstCommandLine]SECOND CRASH");
 						// 碰撞后要塞回去
 						sendedQueue.offer(temp);
 						break;
 					} else {
-						logger.info("第一次碰撞");
+						logger.info("[CONSUMER][findFirstCommandLine]FIRST CRASH");
 						flag = true;
 					}
 				}
 				if (temp instanceof CommandLineCallBack) {
+					logger.info("[CONSUMER][findFirstCommandLine]ECHO AFTER:" + JSON.toJSONString(sendedQueue));
 					return (CommandLineCallBack) temp;
 				} else {
 					sendedQueue.offer(temp);
 				}
 			}
+			logger.info("[CONSUMER][findFirstCommandLine]ECHO AFTER:" + JSON.toJSONString(sendedQueue));
 			return null;
 		}
 
@@ -353,7 +355,7 @@ public class SerialConnecter {
 		 * @param revOrder
 		 */
 		private abstractCallBack findGernerlCalback(ReceiveMessage revOrder) {
-			logger.info("[消费者][已收消息][通用路线]:" + JSON.toJSONString(revOrder));
+			logger.info("[CONSUMER][RECEIVED][findGernerlCalback]:" + JSON.toJSONString(revOrder));
 			// 退出队首有2个条件，A是null，B是回到队首
 			// 确认队首
 			abstractCallBack start = sendedQueue.peek();
@@ -361,36 +363,36 @@ public class SerialConnecter {
 			abstractCallBack commandLine = null;
 			String sendedOrder = "";
 			// 退出标记
-			logger.info("循环前打印:" + JSON.toJSONString(sendedQueue));
+			logger.info("[CONSUMER][findGernerlCalback][SENDED]ECHO BEFORE:" + JSON.toJSONString(sendedQueue));
 			boolean flag = false;
 			while ((temp = sendedQueue.poll()) != null) {
-				
+
 				if ((temp instanceof CommandLineCallBack) && commandLine == null) {
 					commandLine = temp;
 				}
 				// 如果再次相遇就退出
 				if (start.getUuid().equals(temp.getUuid())) {
 					if (flag) {
-						logger.info("第二次碰撞，退出");
+						logger.info("[CONSUMER][findGernerlCalback]SECOND CRASH");
 						// 碰撞后要塞回去
 						sendedQueue.offer(temp);
 						temp = null;
 						break;
 					} else {
-						logger.info("第一次碰撞");
+						logger.info("[CONSUMER][findGernerlCalback]FIRST CRASH");
 						flag = true;
 					}
 				}
-				
+
 				sendedOrder = StringTransformUtil.bytesToHexString(temp.getOrderMessage());
-				//如果小于10直接跳过，不能匹配的上
-				if(sendedOrder.length()<10){
+				// 如果小于10直接跳过，不能匹配的上
+				if (sendedOrder.length() < 10) {
 					// 要塞回去
 					sendedQueue.offer(temp);
 					continue;
 				}
 				if (sendedOrder.substring(4, 10).equalsIgnoreCase(revOrder.getMessage().substring(4, 10))) {
-					logger.info("[消费者][已发命令][匹配成功]:" + JSON.toJSONString(temp));
+					logger.info("[CONSUMER][findGernerlCalback][SENDED][MATCHING]:" + JSON.toJSONString(temp));
 					return temp;
 				} else {
 					// 要塞回去
@@ -398,9 +400,9 @@ public class SerialConnecter {
 					temp = null;
 				}
 			}
-			logger.info("循环后打印:" + JSON.toJSONString(sendedQueue));
+			logger.info("[CONSUMER][findGernerlCalback][SENDED]ECHO AFTER:" + JSON.toJSONString(sendedQueue));
 			if (commandLine != null && flag && temp == null) {
-				logger.info("[消费者][已发命令][无匹配]:" + JSON.toJSONString(commandLine));
+				logger.info("[CONSUMER][findGernerlCalback][SENDED][NO MATCHING]:" + JSON.toJSONString(commandLine));
 				sendedQueue.remove(commandLine);
 				return commandLine;
 			} else if (temp != null) {
@@ -418,37 +420,37 @@ public class SerialConnecter {
 				while (notExit) {
 					while (!receiveQueue.isEmpty()) {
 
-						logger.info("[扫描][已收消息][全集][" + JSON.toJSONString(receiveQueue) + "]");
-						logger.info("[扫描][已发命令][全集][" + JSON.toJSONString(sendedQueue) + "]");
+						logger.info("[CONSUMER][RECEIVED][ALL]" + JSON.toJSONString(receiveQueue));
+						logger.info("[CONSUMER][SENDED][ALL]" + JSON.toJSONString(sendedQueue));
 						// 开始匹配命令：第5位到第8位是一样的，就是匹配上了
 						// !注意： 这个是接受到的命令！！
 						ReceiveMessage revOrder = receiveQueue.poll();
 
-						logger.info("[消费者][已收消息][队列取出消息][消息：" + JSON.toJSONString(revOrder) + "]");
+						logger.info("[CONSUMER][RECEIVED][poll]MESSAGE：" + JSON.toJSONString(revOrder));
 						// 如果命令为空，就直接作废掉，防止溢出
 						if (sendedQueue.size() == 0) {
-							logger.info("[消费者][已发命令][没有操作者][作废已收到消息:" + JSON.toJSONString(revOrder) + "]");
-							logger.error("[消费者][已发命令][没有操作者][作废已收到的消息:" + JSON.toJSONString(revOrder) + "]");
+							logger.info("[CONSUMER][RECEIVED][NO SENDED]CANCELLATION:" + JSON.toJSONString(revOrder));
+							logger.error("[CONSUMER][RECEIVED][NO SENDED]CANCELLATION:" + JSON.toJSONString(revOrder));
 							continue;
 						}
 
 						abstractCallBack tem = null;
 						if (revOrder.getMessage().length() >= 10) {
-							logger.info("[消费者][消息][通用路径]收到的消息是：" + JSON.toJSONString(revOrder));
+							logger.info("[CONSUMER][RECEIVED][gerenal]：" + JSON.toJSONString(revOrder));
 							tem = findGernerlCalback(revOrder);
 						} else {
 							// 自定义命令，一般是比较紧急的事情
-							logger.info("[消费者][消息][自定义路径]收到的消息是：" + JSON.toJSONString(revOrder));
+							logger.info("[CONSUMER][RECEIVED][coustom]：" + JSON.toJSONString(revOrder));
 							tem = findFirstCommandLine();
 						}
 
 						// 提交异步处理
 						if (tem != null) {
-							logger.info("[消费者][已发命令][验证通过]:" + JSON.toJSONString(tem) + ",消息："
+							logger.info("[CONSUMER][SENDED][VERIFY SUC]sended:" + JSON.toJSONString(tem) + ",reved："
 									+ JSON.toJSONString(revOrder));
 							ExecutorServices.getExecutorServices().submit(new abstrackRunnable(tem, revOrder));
 						} else {
-							logger.info("[消费者][验证不通过][丢弃]:" + JSON.toJSONString(revOrder));
+							logger.info("[CONSUMER][SENDED][VERIFY FALSE] reved:" + JSON.toJSONString(revOrder));
 						}
 						continue;
 
