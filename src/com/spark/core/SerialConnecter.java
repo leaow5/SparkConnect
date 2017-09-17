@@ -326,6 +326,7 @@ public class SerialConnecter {
 			logger.info("[CONSUMER][findFirstCommandLine]ECHO BEFORE:" + JSON.toJSONString(sendedQueue));
 			boolean flag = false;
 			while ((temp = sendedQueue.poll()) != null) {
+				logger.info("[CONSUMER][findFirstCommandLine]temp:" + JSON.toJSONString(temp));
 				// 如果再次相遇就退出
 				if (start.getUuid().equals(temp.getUuid())) {
 					if (flag) {
@@ -359,6 +360,8 @@ public class SerialConnecter {
 			// 退出队首有2个条件，A是null，B是回到队首
 			// 确认队首
 			abstractCallBack start = sendedQueue.peek();
+			logger.info("[CONSUMER][findGernerlCalback]start:"
+					+ JSON.toJSONString(start));
 			abstractCallBack temp = null;
 			abstractCallBack commandLine = null;
 			String sendedOrder = "";
@@ -370,6 +373,7 @@ public class SerialConnecter {
 				if ((temp instanceof CommandLineCallBack) && commandLine == null) {
 					commandLine = temp;
 				}
+				logger.info("[CONSUMER][findGernerlCalback][SENDED]temp:" + JSON.toJSONString(temp));
 				// 如果再次相遇就退出
 				if (start.getUuid().equals(temp.getUuid())) {
 					if (flag) {
@@ -388,10 +392,16 @@ public class SerialConnecter {
 				// 如果小于10直接跳过，不能匹配的上
 				if (sendedOrder.length() < 10) {
 					// 要塞回去
+					logger.info("sendedOrder<10");
 					sendedQueue.offer(temp);
+					temp = null;
 					continue;
 				}
-				if (sendedOrder.substring(4, 10).equalsIgnoreCase(revOrder.getMessage().substring(4, 10))) {
+				
+				String ori = sendedOrder.substring(4, 10);
+				String rev = revOrder.getMessage().substring(4, 10);
+				logger.info("sendedOrder:"+ori + ";revOrder:"+rev);
+				if (ori.toUpperCase().equalsIgnoreCase(rev.toUpperCase())) {
 					logger.info("[CONSUMER][findGernerlCalback][SENDED][MATCHING]:" + JSON.toJSONString(temp));
 					return temp;
 				} else {
